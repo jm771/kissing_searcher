@@ -1,11 +1,43 @@
+#pragma once
+
 #include "types.h"
+#include "vectors.h"
+#include <random>
 
+// template <size_t Dim> 
+// Vector<Dim> UniformOnBall(std::random)
+// {
+//     std::default_random_generator(1234);
 
-std::vector<Vector<Dim>> Initialize(size_t nBalls)
+// }
+
+template <size_t Dim, typename Rand>
+Vector<Dim> RandPointOnBall(int64_t radius, Rand & rand)
 {
-    std::mt19937 mt(rd());
-    std::uniform_real_distribution<double> dist(1.0, 10.0)
+    std::normal_distribution<double> gauss(0, 1.0 / 16.0);
+    Vector<Dim> ret;
+    for (size_t i = 0; i < Dim; i++)
+    {
+        ret.mValues[i] = static_cast<int64_t>(gauss(rand) * radius);
+    }
+
+    Normalize(ret);
+    return ret;
 }
+
+template <size_t Dim>
+std::vector<Vector<Dim>> Initialize(size_t nBalls, int64_t radius)
+{
+    std::mt19937 mt(12345);
+    std::vector<Vector<Dim>> ret;
+    for (size_t i = 0; i < nBalls; i++)
+    {
+        ret.push_back(RandPointOnBall<Dim>(radius, mt));
+    }
+    
+    return ret;
+}
+
 
 std::vector<Vector<2>> Initialize2D()
 {

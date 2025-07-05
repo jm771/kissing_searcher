@@ -2,25 +2,22 @@
 #include "types.h"
 #include "debug_output.h"
 #include "file_output.h"
+#include "initial_states.h"
+#include "vectors.h"
 #include <stdint.h>
 #include <random>
 
-
-// Maybe we should make this a power of 2;
-static constexpr int64_t GoogleScaledOne = 1e13;
-static constexpr int64_t ScaledOne = 1L << 30;
-// Can be relatively confident we won't overflow if we keep permutations relatively small before rescaling
-static constexpr int64_t ScaledOneSquared = 1L << 60;
+// static constexpr int64_t GoogleScaledOne = 1e13;
 
 
-// TODO - commit to fixed point and do fixed point upper / lower ops with the __128 stuff
+// // TODO - commit to fixed point and do fixed point upper / lower ops with the __128 stuff
 
-static constexpr int64_t RescaleGoogleValue(int64_t googleValue)
-{
-    // 1e13 < 2^44 - so that leaves us 2^19 beore 2^63
-    // So we'll shift by 19 before div and 11 after to make the most of our 64 bit precision
-    return ((googleValue << 19) / GoogleScaledOne) << 11;
-}
+// static constexpr int64_t RescaleGoogleValue(int64_t googleValue)
+// {
+//     // 1e13 < 2^44 - so that leaves us 2^19 beore 2^63
+//     // So we'll shift by 19 before div and 11 after to make the most of our 64 bit precision
+//     return ((googleValue << 19) / GoogleScaledOne) << 11;
+// }
 
 static consteval double ScaledBound(double val)
 {
@@ -28,58 +25,25 @@ static consteval double ScaledBound(double val)
     return ScaledOneSquared * val * val;
 }
 
-template <size_t Dim>
-int64_t Dot (Vector<Dim> const & a, Vector<Dim> const & b)
-{
-    int64_t ret = 0;
-    for (size_t i = 0; i < Dim; i++)
-    {
-        ret += a.mValues[i] * b.mValues[i];
-    }
 
-    return ret;
-}
 
-template <size_t Dim>
-double DotSafe (Vector<Dim> const & a, Vector<Dim> const & b)
-{
-    double ret = 0;
-    for (size_t i = 0; i < Dim; i++)
-    {
-        ret += static_cast<double>(a.mValues[i]) * b.mValues[i];
-    }
-
-    return ret;
-}
-
-template <size_t Dim>
-int64_t DistSquared (Vector<Dim> const & a, Vector<Dim> const & b)
-{
-    int64_t ret = 0;
-    for (size_t i = 0; i < Dim; i++)
-    {
-        int64_t diff = a.mValues[i] - b.mValues[i];
-        ret += diff * diff;
-    }
+// template <size_t Dim>
+// int64_t DistSquared (Vector<Dim> const & a, Vector<Dim> const & b)
+// {
+//     int64_t ret = 0;
+//     for (size_t i = 0; i < Dim; i++)
+//     {
+//         int64_t diff = a.mValues[i] - b.mValues[i];
+//         ret += diff * diff;
+//     }
         
-    return ret;
-}
+//     return ret;
+// }
+
+
 
 template <size_t Dim>
-Vector<Dim> Diff(Vector<Dim> const & a, Vector<Dim> const & b)
-{
-    Vector<Dim> result;
-
-    for (size_t i = 0; i < Dim; i++)
-    {
-        result.mValues[i] = a.mValues[i] - b.mValues[i];
-    }
-
-    return result;
-}
-
-template <size_t Dim>
-bool CloserThanSafe (Vector<Dim> const & a, Vector<Dim> const & b, double bound)
+bool CloserThanSafe(Vector<Dim> const & a, Vector<Dim> const & b, double bound)
 {
     auto diffVec = Diff(a, b);
     return DotSafe(diffVec, diffVec) <= bound;
@@ -125,16 +89,32 @@ void CalcRoundOfDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup 
             auto diff = Diff(point, neighbour);
             auto distsq = Dot(diff, diff);
 
+            /*def proper_repulsion(diff):
+    distsq = diff * diff
+    if (distsq >= ScaledOneSquared):
+        return 0
+    dist = math.sqrt(distsq)
+    diff = diff / dist
+    scaleFactor = (ScaledOne - dist)
+    return ((diff * scaleFactor) / ScaledOne) * scaleFactor / ScaledOne*/
+
             if (distsq < ScaledOneSquared)
             {
                 auto & other = rets[neighbourId];
-                auto scaleFactor = (ScaledOneSquared - distsq) / ScaledOne;
 
-                std::cout << scaleFactor << std::endl;
+                int64_t dist = std::sqrt(distsq);
+
+                static constexpr auto MinScale = 1 << 10;
+
+                auto scaleFactor = (ScaledOne - dist + MinScale);
+
+                DEBUG_LOG("%lu\n", scaleFactor);
 
                 for (size_t i = 0; i < Dim; i++)
                 {
-                    auto const dval = (diff.mValues[i] * scaleFactor) / ScaledOne;
+                    // (Quad dropped - never converges)
+                    // Scale quadratically to encourage even distn of points when over saturated
+                    auto const dval = (((diff.mValues[i] * scaleFactor) + dist - 1) / dist); // * scaleFactor) / ScaledOne);
                     ret.mValues[i] += dval;
                     other.mValues[i] -= dval;
                 }
@@ -143,20 +123,7 @@ void CalcRoundOfDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup 
     }
 }
 
-template <size_t Dim>
-void Renormalize(std::vector<Vector<Dim>> & points)
-{
-    for (auto & point : points)
-    {
-        auto squareMag = Dot(point, point);
-        auto divisor = std::sqrt(squareMag);
-        for (auto & coord : point.mValues)
-        {
-            // Round up I guess? Todo think more
-            coord = ((coord * ScaledOne) + divisor - 1)/ divisor;
-        }
-    }
-}
+
 
 
 template <size_t Dim>
@@ -178,11 +145,11 @@ bool AllZero(std::vector<Vector<Dim>> const & diffs)
 
 
 template <size_t Dim> 
-void RunRoutine(std::vector<Vector<Dim>> & initialState)
+bool RunRoutine(std::vector<Vector<Dim>> & initialState)
 {
     FileOutput frameOutput("../kissing_search_viewer/frames.json");
     auto & state = initialState;
-    static constexpr auto OuterEpochs = 1 * 1000;
+    static constexpr auto OuterEpochs = 100 * 1000;
     static constexpr auto InnerIterationLoops = 1;
     // If we applied all pushes with a factor of 1/2 (as we apply the push to both balls)
     // we'd pop all the balls out to not be overlapping in a single iteration (Unless it's overlapping multiple balls). 
@@ -199,7 +166,7 @@ void RunRoutine(std::vector<Vector<Dim>> & initialState)
     {
         DEBUG_LOG("[OuterEpoch=%lu] Before Normalization:", outerEpoch);
         DEBUG_LOG_VECTS(state);
-        Renormalize(state);
+        Normalize(state);
         DEBUG_LOG("[OuterEpoch=%lu] After Normalization:", outerEpoch);
         DEBUG_LOG_VECTS(state);
 
@@ -217,7 +184,7 @@ void RunRoutine(std::vector<Vector<Dim>> & initialState)
                 if (AllZero(diffVect)) {
                     printf("[OuterEpoch=%lu][InnerEpoch=%lu] No diffs in iteration, exiting, final values:\n", outerEpoch, innerEpoch);
                     PrintVects(state);
-                    return;
+                    return true;
                 }
             }
             
@@ -233,43 +200,70 @@ void RunRoutine(std::vector<Vector<Dim>> & initialState)
     }
 
     
-    printf("No Soltuion found after all iterations:");
+    printf("No Soltuion found after %lu iterations:\n", OuterEpochs);
     PrintVects(state);
 
-    // static constexpr auto 
-
-    // In each outer loop we:
-    // Rescale the vectors to have a magnitude around ScaledOne
-    // construct a cache of points that are close enough to eachother that we check for colision
-    // 
-    // 
+    return false;
 }
 
-
-    
-
-std::vector<Vector<Dim>> Initialize(size_t nBalls)
+template <size_t Dim> 
+bool Validate(std::vector<Vector<Dim>> & result)
 {
-    std::mt19937 mt(rd());
-    std::uniform_real_distribution<double> dist(1.0, 10.0)
-}
+    int64_t maxSize = 0;
+    DEBUG_LOG("Square Sizes:\n");
+    for (auto const & vect : result)
+    {
+        auto size = Dot(vect, vect);
+        DEBUG_LOG("%lu\n", size);
+        maxSize = std::max(maxSize, size);
+    }
 
-std::vector<Vector<2>> Initialize2D()
-{
-    return {
-        {0, ScaledOne} ,
-        // Extra one
-        { {ScaledOne/100, ScaledOne} },
-        // Extra two - unclear if this will converge now
-        { {-ScaledOne/100, ScaledOne} },
-        {ScaledOne, 0},
-        {0, -ScaledOne},
-        { {-ScaledOne, 0} }
-    };
+    DEBUG_LOG("\n");
+
+    int64_t minDist = std::numeric_limits<int64_t>::max();
+
+    for (size_t i = 0; i < result.size(); i++)
+    {
+        for (size_t j = 0; j < result.size(); j++)
+        {
+            if (i != j)
+            {
+                auto diff = Diff(result[i], result[j]);
+                auto dist = Dot(diff, diff);
+                minDist = std::min(minDist, dist);
+
+                // Crude check to avoid overflow
+                ASSERT(dist < 5 * ScaledOneSquared);
+                DEBUG_LOG("i=%lu j=%lu dist=%lu\n", i, j, dist);
+            }
+        }
+    }
+
+    std::cout << "Max size (squared): " << maxSize << std::endl;
+
+    std::cout << "Min dist (squared): " << minDist << std::endl;
+
+    bool valid = maxSize < minDist;
+
+    auto message =  valid ? "Passed" : "Failed";
+
+    std::cout << "Validation " << message << std::endl;
+
+    return valid;
 }
 
 int main(int, char**){
-    auto init = Initialize2D();
-    RunRoutine<2>(init);
+    // auto init = Initialize2D();
+    // static constexpr size_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
+    // static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
+    static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
+
+
+    auto init = Initialize<DIMENSION>(targetBalls, ScaledOne);
+    auto success = RunRoutine<DIMENSION>(init);
+
+    if (success) {
+        Validate(init);
+    }
     return 0;
 }

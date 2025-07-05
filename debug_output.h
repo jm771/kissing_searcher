@@ -7,8 +7,9 @@ void PrintVect(Vector<Dim> const & vec, std::ostream & out)
 {
     out << '[';
     bool first = true;
-    for (auto const & coord : vec.mValues)
+    for (size_t i = 0; i < Dim; i++)
     {
+        auto const & coord = vec.mValues[i];
         if (first) { first = false;} else { out << ", ";}
         out << coord;
     }
@@ -41,7 +42,7 @@ void PrintLookups(NeighboursLookup const & lookup)
 }
 
 
-#define DEBUG_LOGGING
+// #define DEBUG_LOGGING
 
 #ifdef DEBUG_LOGGING
 #define DEBUG_LOG(format, ...) \

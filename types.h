@@ -20,3 +20,7 @@ struct Vector
         std::memset(mValues.data(), 0, sizeof(int64_t)* Dim);
     }
 };
+
+static constexpr int64_t ScaledOne = 1L << 30;
+// Can be relatively confident we won't overflow if we keep permutations relatively small before rescaling
+static constexpr int64_t ScaledOneSquared = 1L << 60;
