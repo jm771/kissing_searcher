@@ -89,15 +89,6 @@ void CalcRoundOfDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup 
             auto diff = Diff(point, neighbour);
             auto distsq = Dot(diff, diff);
 
-            /*def proper_repulsion(diff):
-    distsq = diff * diff
-    if (distsq >= ScaledOneSquared):
-        return 0
-    dist = math.sqrt(distsq)
-    diff = diff / dist
-    scaleFactor = (ScaledOne - dist)
-    return ((diff * scaleFactor) / ScaledOne) * scaleFactor / ScaledOne*/
-
             if (distsq < ScaledOneSquared)
             {
                 auto & other = rets[neighbourId];
@@ -112,9 +103,17 @@ void CalcRoundOfDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup 
 
                 for (size_t i = 0; i < Dim; i++)
                 {
-                    // (Quad dropped - never converges)
                     // Scale quadratically to encourage even distn of points when over saturated
-                    auto const dval = (((diff.mValues[i] * scaleFactor) + dist - 1) / dist); // * scaleFactor) / ScaledOne);
+                    static constexpr int64_t MinQuad = ScaledOne >> 10;
+
+                    auto dval = (((diff.mValues[i] * scaleFactor) + dist - 1) / dist);
+                    if (scaleFactor > MinQuad)
+                    {
+                        dval *= scaleFactor;
+                        dval /= ScaledOne;
+                        dval += MinQuad;
+                    }
+
                     ret.mValues[i] += dval;
                     other.mValues[i] -= dval;
                 }
@@ -161,7 +160,7 @@ void ApplyDiffs(std::vector<Vector<Dim>> & state, std::vector<Vector<Dim>> & dif
     // If we applied all pushes with a factor of 1/2 (as we apply the push to both balls)
     // we'd pop all the balls out to not be overlapping in a single iteration (Unless it's overlapping multiple balls). 
     // Let's slow this process a bit as it feels like it could be unstable if it shoots stuff straight into other balls
-    static constexpr auto DiffScaleDivisor = 32 * 2;
+    static constexpr auto DiffScaleDivisor = 1 * 2;
 
     for (size_t i = 0; i < state.size(); i++)
     {
@@ -178,7 +177,9 @@ void ApplyDiffsOrth(std::vector<Vector<Dim>> & state, std::vector<Vector<Dim>> &
     // If we applied all pushes with a factor of 1/2 (as we apply the push to both balls)
     // we'd pop all the balls out to not be overlapping in a single iteration (Unless it's overlapping multiple balls). 
     // Let's slow this process a bit as it feels like it could be unstable if it shoots stuff straight into other balls
-    static constexpr auto DiffScaleDivisor = 32 * 2;
+    static constexpr auto DiffScaleDivisor = 1 * 2;
+
+    // We'll scale this down at the end to finish
 
     for (size_t i = 0; i < state.size(); i++)
     {
@@ -187,18 +188,16 @@ void ApplyDiffsOrth(std::vector<Vector<Dim>> & state, std::vector<Vector<Dim>> &
         auto diffSize = std::sqrt(Dot(diffVect, diffVect));
         auto orthComp = Dot(diffVect, stateVect) / ScaledOne;
         
-        for (size_t j = 0; i < Dim; j++)
+        for (size_t j = 0; j < Dim; j++)
         {
-            diffVect[j] -= (stateVect[j] * orthComp) / ScaledOne;
+            diffVect.mValues[j] -= (stateVect.mValues[j] * orthComp) / ScaledOne;
         }
 
         auto orthDiffSize = std::sqrt(Dot(diffVect, diffVect));
 
-
-
         for (size_t j = 0; j < Dim; j++)
         {
-            stateVect.mValues[j] += ((diffVect[i].mValues[j] + DiffScaleDivisor) * diffSize / DiffScaleDivisor / orthDiffSize);
+            stateVect.mValues[j] += ((diffVect.mValues[j] + DiffScaleDivisor) * diffSize / DiffScaleDivisor / orthDiffSize);
         }
     }
 }
@@ -310,8 +309,8 @@ bool Validate(std::vector<Vector<Dim>> & result)
 int main(int, char**){
     // auto init = Initialize2D();
     // static constexpr size_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
-    // static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
-    static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
+    static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
+    // static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
 
 
     std::mt19937 rand(12345);
