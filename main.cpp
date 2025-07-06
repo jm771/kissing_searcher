@@ -143,18 +143,75 @@ bool AllZero(std::vector<Vector<Dim>> const & diffs)
     return true;
 }
 
+template <size_t Dim, typename Rand> 
+void ApplyUnstick(std::vector<Vector<Dim>> & diffVectors, Rand & rand)
+{
+    (void)diffVectors;
+    (void)rand;
+    // for (auto & vect : diffVectors)
+    // {
+    //     int64_t size = std::sqrt(Dot(vect, vect));
+    //     vect = RandPointOnBall<Dim>(10*size, rand);
+    // }
+}
 
 template <size_t Dim> 
-bool RunRoutine(std::vector<Vector<Dim>> & initialState)
+void ApplyDiffs(std::vector<Vector<Dim>> & state, std::vector<Vector<Dim>> & diffVects)
 {
-    FileOutput frameOutput("../kissing_search_viewer/frames.json");
-    auto & state = initialState;
-    static constexpr auto OuterEpochs = 100 * 1000;
-    static constexpr auto InnerIterationLoops = 1;
     // If we applied all pushes with a factor of 1/2 (as we apply the push to both balls)
     // we'd pop all the balls out to not be overlapping in a single iteration (Unless it's overlapping multiple balls). 
     // Let's slow this process a bit as it feels like it could be unstable if it shoots stuff straight into other balls
     static constexpr auto DiffScaleDivisor = 32 * 2;
+
+    for (size_t i = 0; i < state.size(); i++)
+    {
+        for (size_t j = 0; j < Dim; j++)
+        {
+            state[i].mValues[j] += ((diffVects[i].mValues[j] + DiffScaleDivisor) / DiffScaleDivisor);
+        }
+    }
+}
+
+template <size_t Dim> 
+void ApplyDiffsOrth(std::vector<Vector<Dim>> & state, std::vector<Vector<Dim>> & diffVects)
+{
+    // If we applied all pushes with a factor of 1/2 (as we apply the push to both balls)
+    // we'd pop all the balls out to not be overlapping in a single iteration (Unless it's overlapping multiple balls). 
+    // Let's slow this process a bit as it feels like it could be unstable if it shoots stuff straight into other balls
+    static constexpr auto DiffScaleDivisor = 32 * 2;
+
+    for (size_t i = 0; i < state.size(); i++)
+    {
+        auto & diffVect = diffVects[i];
+        auto & stateVect = state[i];
+        auto diffSize = std::sqrt(Dot(diffVect, diffVect));
+        auto orthComp = Dot(diffVect, stateVect) / ScaledOne;
+        
+        for (size_t j = 0; i < Dim; j++)
+        {
+            diffVect[j] -= (stateVect[j] * orthComp) / ScaledOne;
+        }
+
+        auto orthDiffSize = std::sqrt(Dot(diffVect, diffVect));
+
+
+
+        for (size_t j = 0; j < Dim; j++)
+        {
+            stateVect.mValues[j] += ((diffVect[i].mValues[j] + DiffScaleDivisor) * diffSize / DiffScaleDivisor / orthDiffSize);
+        }
+    }
+}
+
+template <size_t Dim, typename Rand> 
+bool RunRoutine(std::vector<Vector<Dim>> & initialState, Rand & rand)
+{
+    FileOutput frameOutput("../kissing_search_viewer/frames.json");
+    auto & state = initialState;
+    static constexpr size_t OuterEpochs = 100 * 1000;
+    static constexpr size_t UnstickCadance = 1000;
+    static constexpr size_t InnerIterationLoops = 1;
+
 
     std::vector<Vector<Dim>> diffVect(state.size());
     for (auto & vec : diffVect)
@@ -187,15 +244,13 @@ bool RunRoutine(std::vector<Vector<Dim>> & initialState)
                     return true;
                 }
             }
-            
 
-            for (size_t i = 0; i < state.size(); i++)
+            if (outerEpoch % UnstickCadance == 0)
             {
-                for (size_t j = 0; j < Dim; j++)
-                {
-                    state[i].mValues[j] += ((diffVect[i].mValues[j] + DiffScaleDivisor) / DiffScaleDivisor);
-                }
+                ApplyUnstick(diffVect, rand);
             }
+            
+            ApplyDiffs(state, diffVect);
         }
     }
 
@@ -259,11 +314,14 @@ int main(int, char**){
     static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
 
 
-    auto init = Initialize<DIMENSION>(targetBalls, ScaledOne);
-    auto success = RunRoutine<DIMENSION>(init);
+    std::mt19937 rand(12345);
+
+
+    auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
+    auto success = RunRoutine<DIMENSION>(state, rand);
 
     if (success) {
-        Validate(init);
+        Validate(state);
     }
     return 0;
 }

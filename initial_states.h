@@ -25,14 +25,13 @@ Vector<Dim> RandPointOnBall(int64_t radius, Rand & rand)
     return ret;
 }
 
-template <size_t Dim>
-std::vector<Vector<Dim>> Initialize(size_t nBalls, int64_t radius)
+template <size_t Dim, typename Rand>
+std::vector<Vector<Dim>> Initialize(size_t nBalls, int64_t radius, Rand & rand)
 {
-    std::mt19937 mt(12345);
     std::vector<Vector<Dim>> ret;
     for (size_t i = 0; i < nBalls; i++)
     {
-        ret.push_back(RandPointOnBall<Dim>(radius, mt));
+        ret.push_back(RandPointOnBall<Dim>(radius, rand));
     }
     
     return ret;
