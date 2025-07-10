@@ -104,7 +104,7 @@ void CalcRoundOfDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup 
                 for (size_t i = 0; i < Dim; i++)
                 {
                     // Scale quadratically to encourage even distn of points when over saturated
-                    static constexpr int64_t MinQuad = ScaledOne >> 10;
+                    static constexpr int64_t MinQuad = ScaledOne >> 5;
 
                     auto dval = (((diff.mValues[i] * scaleFactor) + dist - 1) / dist);
                     if (scaleFactor > MinQuad)
@@ -147,11 +147,11 @@ void ApplyUnstick(std::vector<Vector<Dim>> & diffVectors, Rand & rand)
 {
     (void)diffVectors;
     (void)rand;
-    // for (auto & vect : diffVectors)
-    // {
-    //     int64_t size = std::sqrt(Dot(vect, vect));
-    //     vect = RandPointOnBall<Dim>(10*size, rand);
-    // }
+    for (auto & vect : diffVectors)
+    {
+        int64_t size = std::sqrt(Dot(vect, vect));
+        vect = RandPointOnBall<Dim>(10*size, rand);
+    }
 }
 
 template <size_t Dim> 
