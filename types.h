@@ -19,6 +19,14 @@ struct Vector
     {
         std::memset(mValues.data(), 0, sizeof(int64_t)* Dim);
     }
+
+    void Add(Vector<Dim> const & other)
+    {
+        for (size_t i = 0; i < Dim; i++)
+        {
+            mValues[i] += other.mValues[i];
+        }
+    }
 };
 
 static constexpr int64_t ScaledOne = 1L << 30;
