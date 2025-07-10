@@ -193,7 +193,8 @@ void ApplyDiffsOrth(std::vector<Vector<Dim>> & state, std::vector<Vector<Dim>> &
             diffVect.mValues[j] -= (stateVect.mValues[j] * orthComp) / ScaledOne;
         }
 
-        auto orthDiffSize = std::sqrt(Dot(diffVect, diffVect));
+        // Adding 1 to denom to avoid issues with dividing by tiny numbers
+        auto orthDiffSize = std::sqrt(Dot(diffVect, diffVect)) + 1;
 
         for (size_t j = 0; j < Dim; j++)
         {
