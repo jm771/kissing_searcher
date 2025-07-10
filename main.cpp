@@ -147,11 +147,11 @@ void ApplyUnstick(std::vector<Vector<Dim>> & diffVectors, Rand & rand)
 {
     (void)diffVectors;
     (void)rand;
-    for (auto & vect : diffVectors)
-    {
-        int64_t size = std::sqrt(Dot(vect, vect));
-        vect = RandPointOnBall<Dim>(10*size, rand);
-    }
+    // for (auto & vect : diffVectors)
+    // {
+    //     int64_t size = std::sqrt(Dot(vect, vect));
+    //     vect = RandPointOnBall<Dim>(10*size, rand);
+    // }
 }
 
 template <size_t Dim> 
@@ -223,7 +223,15 @@ bool RunRoutine(std::vector<Vector<Dim>> & initialState, Rand & rand)
     {
         DEBUG_LOG("[OuterEpoch=%lu] Before Normalization:", outerEpoch);
         DEBUG_LOG_VECTS(state);
-        Normalize(state);
+
+        // static constexpr int64_t MIN_SCALE = (7 * ScaledOne) / 8;
+        // static constexpr int64_t END_SCALE_EPOCH = (7 * OuterEpochs) / 8;
+
+        // int64_t scale = outerEpoch > END_SCALE_EPOCH ? ScaledOne : ((END_SCALE_EPOCH - outerEpoch) * MIN_SCALE + outerEpoch * ScaledOne) / END_SCALE_EPOCH;
+
+        int64_t scale = ScaledOne;
+
+        Normalize(state, scale);
         DEBUG_LOG("[OuterEpoch=%lu] After Normalization:", outerEpoch);
         DEBUG_LOG_VECTS(state);
 
@@ -310,8 +318,8 @@ bool Validate(std::vector<Vector<Dim>> & result)
 int main(int, char**){
     // auto init = Initialize2D();
     // static constexpr size_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
-    static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
-    // static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
+    // static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
+    static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
 
 
     std::mt19937 rand(12345);

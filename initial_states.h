@@ -21,7 +21,7 @@ Vector<Dim> RandPointOnBall(int64_t radius, Rand & rand)
         ret.mValues[i] = static_cast<int64_t>(gauss(rand) * radius);
     }
 
-    Normalize(ret);
+    Normalize(ret, ScaledOne);
     return ret;
 }
 

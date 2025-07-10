@@ -40,22 +40,22 @@ Vector<Dim> Diff(Vector<Dim> const & a, Vector<Dim> const & b)
 }
 
 template <size_t Dim>
-void Normalize(Vector<Dim> & point)
+void Normalize(Vector<Dim> & point, int64_t mag)
 {
     auto squareMag = Dot(point, point);
     auto divisor = std::sqrt(squareMag);
     for (auto & coord : point.mValues)
     {
         // Round up I guess? Todo think more
-        coord = ((coord * ScaledOne) + divisor - 1)/ divisor;
+        coord = ((coord * mag) + divisor - 1)/ divisor;
     }
 }
 
 template <size_t Dim>
-void Normalize(std::vector<Vector<Dim>> & points)
+void Normalize(std::vector<Vector<Dim>> & points, int64_t mag)
 {
     for (auto & point : points)
     {
-        Normalize(point);
+        Normalize(point, mag);
     }
 }
