@@ -147,11 +147,11 @@ void ApplyUnstick(std::vector<Vector<Dim>> & diffVectors, Rand & rand)
 {
     (void)diffVectors;
     (void)rand;
-    for (auto & vect : diffVectors)
-    {
-        int64_t size = std::sqrt(Dot(vect, vect));
-        vect = RandPointOnBall<Dim>(10*size, rand);
-    }
+    // for (auto & vect : diffVectors)
+    // {
+    //     int64_t size = std::sqrt(Dot(vect, vect));
+    //     vect = RandPointOnBall<Dim>(10*size, rand);
+    // }
 }
 
 template <size_t Dim> 
@@ -346,7 +346,7 @@ bool Validate(std::vector<Vector<Dim>> & result)
 
 int main(int, char**){
     // auto init = Initialize2D();
-    // static constexpr size_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
+    // static constexpr sifze_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
     // static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
     static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
 
@@ -354,7 +354,9 @@ int main(int, char**){
     std::mt19937 rand(12345);
 
 
-    auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
+    // auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
+    auto state = Initialize4D(rand);
+    Normalize(state, ScaledOne);
     auto success = RunRoutine<DIMENSION>(state, rand);
 
     if (success) {

@@ -21,7 +21,7 @@ Vector<Dim> RandPointOnBall(int64_t radius, Rand & rand)
         ret.mValues[i] = static_cast<int64_t>(gauss(rand) * radius);
     }
 
-    Normalize(ret, ScaledOne);
+    Normalize(ret, radius);
     return ret;
 }
 
@@ -36,6 +36,34 @@ std::vector<Vector<Dim>> Initialize(size_t nBalls, int64_t radius, Rand & rand)
     
     return ret;
 }
+
+template <typename Rand>
+std::vector<Vector<4>> Initialize4D(Rand & rand)
+{
+    std::vector<Vector<4>> ret;
+    std::vector<int64_t> signs{-ScaledOne, ScaledOne};
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = i + 1; j < 4; j++)
+        {
+            for (auto s1 : signs)
+            {
+                for (auto s2 : signs)
+                {
+                    auto & n = ret.emplace_back();
+                    n.Zero();
+                    n.mValues[i] = s1;
+                    n.mValues[j] = s2;
+                    n.Add(RandPointOnBall<4>(ScaledOne >> 10, rand));
+                }
+            }
+    
+        }
+    }
+
+    return ret;
+}
+
 
 
 std::vector<Vector<2>> Initialize2D()
