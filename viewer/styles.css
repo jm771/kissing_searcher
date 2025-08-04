@@ -1,0 +1,245 @@
+body { 
+    background: #111; 
+    margin: 0; 
+    color: white;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#controls {
+    width: 80%;
+    margin: 20px auto;
+    padding: 15px;
+    background: #333;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+}
+
+.dimension-selector {
+    display: flex;
+    align-items: center;
+}
+
+.dimension-selector label {
+    margin-right: 10px;
+    width: auto;
+}
+
+select {
+    background-color: #444;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #4CAF50;
+}
+
+.canvas-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 0 auto 80px; /* Added bottom margin to make room for X-axis controls */
+    position: relative;
+}
+
+.canvas-controls-container {
+    position: relative;
+    display: inline-block;
+}
+
+canvas { 
+    display: block; 
+    background: #222; 
+}
+
+#sliders {
+    width: 80%;
+    margin: 20px auto;
+    padding: 15px;
+    background: #333;
+    border-radius: 5px;
+}
+
+#sliders div {
+    margin: 15px 0;
+}
+
+label {
+    display: inline-block;
+    width: 120px;
+    color: white;
+}
+
+input[type="range"] {
+    width: 60%;
+    vertical-align: middle;
+}
+
+span {
+    display: inline-block;
+    width: 40px;
+    text-align: right;
+    margin-left: 10px;
+}
+
+.readme-link {
+    text-align: center;
+    margin: 15px auto;
+}
+
+.readme-link a {
+    color: #4CAF50;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.readme-link a:hover {
+    text-decoration: underline;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    margin: 15px 0;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+    margin-left: 10px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #555;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: #4CAF50;
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.x-axis-controls {
+    position: absolute;
+    bottom: -60px;
+    left: 80px;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+}
+
+.y-axis-controls {
+    position: absolute;
+    top: 0;
+    left: -80px;
+    bottom: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    padding: 10px;
+}
+
+.plane-rotation-control {
+    position: absolute;
+    bottom: -60px;
+    left: -80px;
+    padding: 10px;
+}
+
+.button-group {
+    display: flex;
+    align-items: center;
+    margin: 5px;
+}
+
+.x-axis-button {
+    flex-direction: column;
+    text-align: center;
+}
+
+.y-axis-button {
+    flex-direction: row;
+}
+
+.rotation-label {
+    display: block;
+    width: auto;
+    margin: 5px;
+    white-space: nowrap;
+    color: #ddd;
+    font-size: 12px;
+}
+
+.button-group button {
+    margin: 0 3px;
+    width: 30px;
+    height: 30px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.button-group button:hover {
+    background-color: #555;
+}
+
+.control-button {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.control-button:hover {
+    background-color: #45a049;
+}
+
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
