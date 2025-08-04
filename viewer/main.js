@@ -81,6 +81,27 @@ function runApp(frames) {
     draw();
   });
 
+  const jumpBackwardBtn = document.getElementById('jumpBackwardBtn');
+  const jumpForwardBtn = document.getElementById('jumpForwardBtn');
+  const frameJumpInput = document.getElementById('frameJumpInput');
+
+  function jumpFrames(direction) {
+    const jumpValue = parseInt(frameJumpInput.value, 10);
+    let currentFrame = parseInt(frameSlider.value, 10);
+    let newFrame = currentFrame + (direction * jumpValue);
+
+    newFrame = Math.max(0, Math.min(newFrame, frameSlider.max));
+
+    if (newFrame !== currentFrame) {
+        frameSlider.value = newFrame;
+        const event = new Event('input', { bubbles: true });
+        frameSlider.dispatchEvent(event);
+    }
+  }
+
+  jumpBackwardBtn.addEventListener('click', () => jumpFrames(-1));
+  jumpForwardBtn.addEventListener('click', () => jumpFrames(1));
+
   let zoom = 0.5;
 
   let circleSize = 1;
@@ -193,12 +214,10 @@ function runApp(frames) {
       //   ctx.fillStyle = `rgba(0, 255, 0, ${0.5 * scale_factor})`
       // } else 
       if (mindist < 0.99) {
-        // console.log(mindist)
         let overlapScale = Math.sqrt(mindist); // * mindist;
         overlapScale = (overlapScale - 0.9) * 10
         let r = 255 * (1-overlapScale);
         let g = 255 * overlapScale;
-        console.log(r, g);
         ctx.fillStyle = `rgba(${r}, ${g}, 0, ${0.5 * scale_factor})`;
       } else {
         ctx.fillStyle = `rgba(0, 255, 0, ${0.5 * scale_factor})`;
