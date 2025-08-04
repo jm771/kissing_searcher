@@ -54,7 +54,7 @@ std::vector<Vector<4>> Initialize4D(Rand & rand)
                     n.Zero();
                     n.mValues[i] = s1;
                     n.mValues[j] = s2;
-                    n.Add(RandPointOnBall<4>(ScaledOne >> 10, rand));
+                    n.Add(RandPointOnBall<4>(ScaledOne >> 4, rand));
                 }
             }
     

@@ -228,7 +228,7 @@ void ApplyDiffsOrth(std::vector<Vector<Dim>> & state, std::vector<Vector<Dim>> &
 template <size_t Dim, typename Rand> 
 bool RunRoutine(std::vector<Vector<Dim>> & initialState, Rand & rand)
 {
-    FileOutput frameOutput("../kissing_search_viewer/frames.json");
+    FileOutput frameOutput("viewer/frames.json");
     auto & state = initialState;
     static constexpr size_t OuterEpochs = 100 * 1000;
     static constexpr size_t UnstickCadence = 1000;
@@ -287,7 +287,7 @@ bool RunRoutine(std::vector<Vector<Dim>> & initialState, Rand & rand)
                 ApplyUnstick(diffVect, rand);
             }
             
-            ApplyDiffs(state, diffVect);
+	    ApplyDiffs(state, diffVect);
         }
     }
 
