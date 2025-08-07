@@ -40,6 +40,26 @@ Vector<Dim> Diff(Vector<Dim> const & a, Vector<Dim> const & b)
 }
 
 template <size_t Dim>
+Vector<Dim> Add(Vector<Dim> const & a, Vector<Dim> const & b)
+{
+    Vector<Dim> result;
+
+    for (size_t i = 0; i < Dim; i++)
+    {
+        result.mValues[i] = a.mValues[i] + b.mValues[i];
+    }
+
+    return result;
+}
+
+template <size_t Dim>
+double Dist(Vector<Dim> const & a, Vector<Dim> const & b)
+{
+    auto diffVec = Diff(a, b);
+    return std::sqrt(DotSafe(diffVec, diffVec));
+}
+
+template <size_t Dim>
 void Normalize(Vector<Dim> & point, int64_t mag)
 {
     auto squareMag = Dot(point, point);
@@ -58,4 +78,10 @@ void Normalize(std::vector<Vector<Dim>> & points, int64_t mag)
     {
         Normalize(point, mag);
     }
+}
+
+static consteval double ScaledBound(double val)
+{
+    ASSERT(val < 2);
+    return ScaledOneSquared * val * val;
 }

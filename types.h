@@ -9,6 +9,7 @@
 
 using PointId = size_t;
 using NeighboursLookup = std::vector<std::vector<PointId>>;
+using PointType = double;
 
 template <size_t Dim>
 struct Vector

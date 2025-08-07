@@ -12,14 +12,22 @@
 // }
 
 template <size_t Dim, typename Rand>
-Vector<Dim> RandPointOnBall(int64_t radius, Rand & rand)
+Vector<Dim> RandPoint(int64_t stddev, Rand & rand)
 {
-    std::normal_distribution<double> gauss(0, 1.0 / 16.0);
+    std::normal_distribution<double> gauss(0, 1.0);
     Vector<Dim> ret;
     for (size_t i = 0; i < Dim; i++)
     {
-        ret.mValues[i] = static_cast<int64_t>(gauss(rand) * radius);
+        ret.mValues[i] = static_cast<int64_t>(gauss(rand) * stddev);
     }
+
+    return ret;
+}
+
+template <size_t Dim, typename Rand>
+Vector<Dim> RandPointOnBall(int64_t radius, Rand & rand)
+{
+    auto ret = RandPoint<Dim>(radius / 16, rand);
 
     Normalize(ret, radius);
     return ret;
