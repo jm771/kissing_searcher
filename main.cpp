@@ -79,8 +79,8 @@ bool Validate(std::vector<Vector<Dim>> & result)
 int main(int, char**){
     // auto init = Initialize2D();
     // static constexpr sifze_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
-    static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
-    // static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
+    // static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
+    static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
     // static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
 
 
