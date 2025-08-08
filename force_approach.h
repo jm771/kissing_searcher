@@ -10,8 +10,6 @@
 template <size_t Dim>
 void CalcRoundOfDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup const & neighbours, std::vector<Vector<Dim>> & rets)
 {
-    static constexpr double DELTA = 1e-6;
-
     for (auto & val : rets)
     {
         val.Zero();
@@ -83,6 +81,40 @@ bool AllZero(std::vector<Vector<Dim>> const & diffs)
     return true;
 }
 
+template <size_t Dim, typename Rand> 
+void ApplyUnstick(std::vector<Vector<Dim>> & diffVectors, Rand & rand)
+{
+    // (void)diffVectors;
+    // (void)rand;
+    for (auto & vect : diffVectors)
+    {
+        PointType size = std::sqrt(Dot(vect, vect));
+        vect = RandPointOnBall<Dim>(10*size, rand);
+    }
+}
+
+template <size_t Dim> 
+void ApplyRecenter(std::vector<Vector<Dim>> & state)
+{
+    // Should probably not actually make this static...
+    static Vector<Dim> working;
+    working.Zero();
+
+    for (auto const & vect : state)
+    {
+        working.Add(vect);
+    }
+
+    for (auto & vect : state)
+    {
+        for(size_t i = 0; i < Dim; i++)
+        {
+            vect.mValues[i] -= working.mValues[i] / state.size();
+        }
+    }    
+}
+
+
 
 template <size_t Dim> 
 void ApplyDiffs(std::vector<Vector<Dim>> & state, std::vector<Vector<Dim>> & diffVects)
@@ -97,6 +129,39 @@ void ApplyDiffs(std::vector<Vector<Dim>> & state, std::vector<Vector<Dim>> & dif
         for (size_t j = 0; j < Dim; j++)
         {
             state[i].mValues[j] += ((diffVects[i].mValues[j] + DiffScaleDivisor) / DiffScaleDivisor);
+        }
+    }
+}
+
+
+template <size_t Dim> 
+void ApplyDiffsOrth(std::vector<Vector<Dim>> & state, std::vector<Vector<Dim>> & diffVects)
+{
+    // If we applied all pushes with a factor of 1/2 (as we apply the push to both balls)
+    // we'd pop all the balls out to not be overlapping in a single iteration (Unless it's overlapping multiple balls). 
+    // Let's slow this process a bit as it feels like it could be unstable if it shoots stuff straight into other balls
+    static constexpr auto DiffScaleDivisor = 1 * 2;
+
+    // We'll scale this down at the end to finish
+
+    for (size_t i = 0; i < state.size(); i++)
+    {
+        auto & diffVect = diffVects[i];
+        auto & stateVect = state[i];
+        auto diffSize = std::sqrt(Dot(diffVect, diffVect));
+        auto orthComp = Dot(diffVect, stateVect) / ScaledOne;
+        
+        for (size_t j = 0; j < Dim; j++)
+        {
+            diffVect.mValues[j] -= (stateVect.mValues[j] * orthComp) / ScaledOne;
+        }
+
+        // Adding 1 to denom to avoid issues with dividing by tiny numbers
+        auto orthDiffSize = std::sqrt(Dot(diffVect, diffVect)) + 1;
+
+        for (size_t j = 0; j < Dim; j++)
+        {
+            stateVect.mValues[j] += ((diffVect.mValues[j] + DiffScaleDivisor) * diffSize / DiffScaleDivisor / orthDiffSize);
         }
     }
 }

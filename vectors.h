@@ -53,6 +53,25 @@ Vector<Dim> Add(Vector<Dim> const & a, Vector<Dim> const & b)
 }
 
 template <size_t Dim>
+void SubMult(Vector<Dim> & a, Vector<Dim> const & b, PointType scale)
+{
+    for (size_t i = 0; i < Dim; i++)
+    {
+        a.mValues[i] -= b.mValues[i] * scale;
+    }
+}
+
+template <size_t Dim>
+void Acc(Vector<Dim> & a, Vector<Dim> const & b)
+{
+    for (size_t i = 0; i < Dim; i++)
+    {
+        a.mValues[i] += b.mValues[i];
+    }
+}
+
+
+template <size_t Dim>
 double Dist(Vector<Dim> const & a, Vector<Dim> const & b)
 {
     auto diffVec = Diff(a, b);

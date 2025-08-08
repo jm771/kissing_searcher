@@ -1,7 +1,7 @@
 
 #include "force_approach.h"
 #include "simulated_annealing.h"
-
+#include "dot_gradient_descent.h"
 // static constexpr PointType GoogleScaledOne = 1e13;
 
 
@@ -90,7 +90,7 @@ int main(int, char**){
     auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
     // auto state = Initialize4D(rand);
     Normalize(state, ScaledOne);
-    auto success = RunAnnealing<DIMENSION>(state, rand);
+    auto success = RunGradientDescent<DIMENSION>(state);
 
     if (success) {
         Validate(state);
