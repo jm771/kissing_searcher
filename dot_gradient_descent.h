@@ -7,7 +7,7 @@
 template <size_t Dim>
 void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup const & neighbours, std::vector<Vector<Dim>> & rets)
 {
-    static constexpr double DELTA = 1e-4;
+    static constexpr double DELTA = 1e-5;
     static constexpr double QUAD_DELTA = 1;
 
     std::vector<PointType> mags(points.size());
@@ -49,8 +49,8 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
 
             if (cos_theta > 0.5) // points too close
             {
-                // Let's try this quadratic too(cos_theta - 0.5)
-                SubMult(ret, neighbour, DELTA / mags[neighbourId]);
+                // Let's try this quadratic too (cos_theta - 0.5) *
+                SubMult(ret, neighbour,  DELTA / mags[neighbourId]);
             }      
         }
     }
@@ -63,7 +63,7 @@ bool RunGradientDescent(std::vector<Vector<Dim>> & initialState)
     auto & state = initialState;
     frameOutput.WriteRow(state);
     static constexpr size_t OuterEpochs = 100 * 1000;
-    static constexpr size_t InnerIterationLoops = 1;
+    static constexpr size_t InnerIterationLoops = 100;
 
 
     std::vector<Vector<Dim>> diffVect(state.size());
@@ -74,7 +74,7 @@ bool RunGradientDescent(std::vector<Vector<Dim>> & initialState)
 
     for (size_t outerEpoch = 0; outerEpoch < OuterEpochs; outerEpoch++)
     {
-        auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
+        auto neighbourLookup = ConstructPointNeighboursBidi(state, ScaledBound(1.2));
 
         frameOutput.WriteRow(state);
 
