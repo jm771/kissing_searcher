@@ -2,12 +2,12 @@
 #include "force_approach.h"
 #include "simulated_annealing.h"
 
-// static constexpr int64_t GoogleScaledOne = 1e13;
+// static constexpr PointType GoogleScaledOne = 1e13;
 
 
 // // TODO - commit to fixed point and do fixed point upper / lower ops with the __128 stuff
 
-// static constexpr int64_t RescaleGoogleValue(int64_t googleValue)
+// static constexpr PointType RescaleGoogleValue(PointType googleValue)
 // {
 //     // 1e13 < 2^44 - so that leaves us 2^19 beore 2^63
 //     // So we'll shift by 19 before div and 11 after to make the most of our 64 bit precision
@@ -16,12 +16,12 @@
 
 
 // template <size_t Dim>
-// int64_t DistSquared (Vector<Dim> const & a, Vector<Dim> const & b)
+// PointType DistSquared (Vector<Dim> const & a, Vector<Dim> const & b)
 // {
-//     int64_t ret = 0;
+//     PointType ret = 0;
 //     for (size_t i = 0; i < Dim; i++)
 //     {
-//         int64_t diff = a.mValues[i] - b.mValues[i];
+//         PointType diff = a.mValues[i] - b.mValues[i];
 //         ret += diff * diff;
 //     }
         
@@ -33,7 +33,7 @@
 template <size_t Dim> 
 bool Validate(std::vector<Vector<Dim>> & result)
 {
-    int64_t maxSize = 0;
+    PointType maxSize = 0;
     DEBUG_LOG("Square Sizes:\n");
     for (auto const & vect : result)
     {
@@ -44,7 +44,7 @@ bool Validate(std::vector<Vector<Dim>> & result)
 
     DEBUG_LOG("\n");
 
-    int64_t minDist = std::numeric_limits<int64_t>::max();
+    PointType minDist = std::numeric_limits<PointType>::max();
 
     for (size_t i = 0; i < result.size(); i++)
     {
@@ -80,8 +80,8 @@ int main(int, char**){
     // auto init = Initialize2D();
     // static constexpr sifze_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
     // static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
-    // static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
-    static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
+    static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
+    // static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
 
 
     std::mt19937 rand(12345);

@@ -12,20 +12,20 @@
 // }
 
 template <size_t Dim, typename Rand>
-Vector<Dim> RandPoint(int64_t stddev, Rand & rand)
+Vector<Dim> RandPoint(PointType stddev, Rand & rand)
 {
     std::normal_distribution<double> gauss(0, 1.0);
     Vector<Dim> ret;
     for (size_t i = 0; i < Dim; i++)
     {
-        ret.mValues[i] = static_cast<int64_t>(gauss(rand) * stddev);
+        ret.mValues[i] = static_cast<PointType>(gauss(rand) * stddev);
     }
 
     return ret;
 }
 
 template <size_t Dim, typename Rand>
-Vector<Dim> RandPointOnBall(int64_t radius, Rand & rand)
+Vector<Dim> RandPointOnBall(PointType radius, Rand & rand)
 {
     auto ret = RandPoint<Dim>(radius / 16, rand);
 
@@ -34,7 +34,7 @@ Vector<Dim> RandPointOnBall(int64_t radius, Rand & rand)
 }
 
 template <size_t Dim, typename Rand>
-std::vector<Vector<Dim>> Initialize(size_t nBalls, int64_t radius, Rand & rand)
+std::vector<Vector<Dim>> Initialize(size_t nBalls, PointType radius, Rand & rand)
 {
     std::vector<Vector<Dim>> ret;
     for (size_t i = 0; i < nBalls; i++)
@@ -49,7 +49,7 @@ template <typename Rand>
 std::vector<Vector<4>> Initialize4D(Rand & rand)
 {
     std::vector<Vector<4>> ret;
-    std::vector<int64_t> signs{-ScaledOne, ScaledOne};
+    std::vector<PointType> signs{-ScaledOne, ScaledOne};
     for (int i = 0; i < 4; i++)
     {
         for (int j = i + 1; j < 4; j++)
@@ -62,7 +62,7 @@ std::vector<Vector<4>> Initialize4D(Rand & rand)
                     n.Zero();
                     n.mValues[i] = s1;
                     n.mValues[j] = s2;
-                    n.Add(RandPointOnBall<4>(ScaledOne >> 4, rand));
+                    n.Add(RandPointOnBall<4>(ScaledOne / 16, rand));
                 }
             }
     

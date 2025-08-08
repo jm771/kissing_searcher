@@ -13,16 +13,18 @@
 #include <stdint.h>
 #include <random>
 
+static constexpr PointType DistancePunishmentFactor = 7;
+
 template <size_t Dim> 
-double Energy(std::vector<Vector<Dim>> const & state, NeighboursLookup const & lookup)
+double Energy2(std::vector<Vector<Dim>> const & state, NeighboursLookup const & lookup)
 {
     double ret = 0;
-    std::cout << ret << std::endl;
+    // std::cout << ret << std::endl;
     for (auto & vect : state)
     {
         auto e = labs(ScaledOne - std::sqrt(Dot(vect, vect)));
-        ret += e;
-        std::cout << ret << " " << e << std::endl;
+        ret += e * DistancePunishmentFactor;
+        // std::cout << ret << " " << e << std::endl;
     } 
 
     for (size_t id1 = 0; id1 < lookup.size(); id1++)
@@ -34,7 +36,7 @@ double Energy(std::vector<Vector<Dim>> const & state, NeighboursLookup const & l
             {
                 ret += e / 2;
             }
-            std::cout << ret << " " << e << std::endl;
+            // std::cout << ret << " " << e << std::endl;
         }
     }
 
@@ -48,7 +50,7 @@ double EnergyContrib(std::vector<Vector<Dim>> const & state, NeighboursLookup co
     {
         auto const & vect = el;
         auto e = abs(ScaledOne - std::sqrt(Dot(vect, vect)));
-        ret += e;
+        ret += e * DistancePunishmentFactor;
     }
 
     for (auto id2 : lookup[elIdx])
@@ -56,10 +58,21 @@ double EnergyContrib(std::vector<Vector<Dim>> const & state, NeighboursLookup co
         auto e = ScaledOne - Dist(el, state[id2]);
         if (e > 0)
         {
-            ret += e;
+            ret += e / 2;
         }
     }
 
+    return ret;
+}
+
+template <size_t Dim> 
+double Energy(std::vector<Vector<Dim>> const & state, NeighboursLookup const & lookup)
+{
+    double ret = 0;
+    for (size_t i = 0; i < state.size(); i++)
+    {
+        ret += EnergyContrib(state, lookup, i, state[i]);
+    }
     return ret;
 }
 
@@ -73,7 +86,7 @@ bool AcceptTransition(double oldEnergy, double newEnergy, double temperature, Ra
     else
     {
         std::uniform_real_distribution<double> realDistn(0, 1);
-        return realDistn(rand) < std::exp(-(newEnergy - oldEnergy) / temperature);
+        return realDistn(rand) < std::exp(-(newEnergy - oldEnergy) / (temperature));
     }
 }
 
@@ -96,9 +109,10 @@ void RunInnerLoop(std::vector<Vector<Dim>> & state, NeighboursLookup const & nei
     // -> Sqrt(N) = root(2) / (2 * 2 * Dim * MoveDist)
     // -> N = 1 / 2 * Dim^2 * MoveDist ^ 2
 
-    constexpr auto MOVE_DIST = ScaledOne >> 5;
-    static constexpr auto RecipMoveDist = ScaledOne / MOVE_DIST;
-    static constexpr auto SafeIterations = RecipMoveDist * RecipMoveDist / Dim / Dim / 2;
+    constexpr auto MOVE_DIST = ScaledOne / 32;
+    // static constexpr auto RecipMoveDist = ScaledOne / MOVE_DIST;
+    // static constexpr auto SafeIterations = RecipMoveDist * RecipMoveDist / Dim / Dim / 2;
+    static constexpr auto SafeIterations = 1;
 
 
     std::uniform_int_distribution<size_t> intDistn(0, state.size() - 1);
@@ -106,14 +120,26 @@ void RunInnerLoop(std::vector<Vector<Dim>> & state, NeighboursLookup const & nei
     for (size_t innerEpoch = 0; innerEpoch < SafeIterations; innerEpoch++)
         {
             auto randomEl = intDistn(rand);
-            auto randomMove = RandPoint<Dim>(MOVE_DIST, rand);
-            auto oldEnergy = EnergyContrib(state, neighbourLookup, randomEl, state[randomEl]);
-            auto newPoint = Add(state[randomEl], randomMove);
+            auto & stateEl = state[randomEl];
+            auto orthRandomMove = RandPoint<Dim>(MOVE_DIST, rand);
+            // auto orthComp = Dot(orthRandomMove, stateEl) / ScaledOne;
+            // auto mag = Dot(stateEl, stateEl) / ScaledOne;
+
+
+            // for (size_t j = 0; j < Dim; j++)
+            // {
+            //     orthRandomMove.mValues[j] -= (stateEl.mValues[j] * orthComp) / mag;
+            // }
+
+            // std::cout << Dot(orthRandomMove, stateEl) << std::endl;
+
+            auto oldEnergy = EnergyContrib(state, neighbourLookup, randomEl, stateEl);
+            auto newPoint = Add(stateEl, orthRandomMove);
             auto newEnergy = EnergyContrib(state, neighbourLookup, randomEl, newPoint);
 
             if (AcceptTransition(oldEnergy, newEnergy, temperature, rand))
             {
-                state[randomEl] = newPoint;
+                stateEl = newPoint;
             }
         }
 }
@@ -124,24 +150,38 @@ bool RunAnnealing(std::vector<Vector<Dim>> & initialState, Rand & rand)
 {
     FileOutput frameOutput("viewer/frames.json");
     auto & state = initialState;
-    static constexpr size_t OuterEpochs = 100;
+    // static constexpr size_t OuterEpochs = 100;
 
     auto neighbourLookup = ConstructPointNeighboursBidi(state, ScaledBound(1.2));    
     auto systemEnergy = Energy(state, neighbourLookup);
     std::cout << "System started with energy of " << systemEnergy << std::endl;
     // Allow a 1/4 increase in temp with probability 1/e
-    auto const initialTemperature = systemEnergy / 4;
+    double const initialTemperature = systemEnergy / 16; // 16;// / 16 / 4;
+    auto temperature = initialTemperature;// initialTemperature;
+
+    static constexpr auto InitialIters = 100000;
 
     // Let's just run the simulation a bit to quickly drop out of the really high initial temp.
     // Really high initial temp probably leads to some large movements so 
-    for (size_t i = 0; i < 100000; i++)
+    for (size_t i = 0; i < 100; i++)
     {
-        neighbourLookup = ConstructPointNeighboursBidi(state, ScaledBound(1.2));
-        RunInnerLoop(state, neighbourLookup, initialTemperature, rand);
+        for (size_t i = 0; i < InitialIters; i++)
+        {
+            neighbourLookup = ConstructPointNeighboursBidi(state, ScaledBound(1.2));
+            RunInnerLoop(state, neighbourLookup, temperature, rand);
+            // This is not a good plan
+            // Normalize(state, ScaledOne);
+            // frameOutput.WriteRow(state);
+        }
+
+        systemEnergy = Energy(state, neighbourLookup);
+        std::cout << "After initial " << InitialIters << " rounds, system energy is " << systemEnergy << std::endl;
+        frameOutput.WriteRow(state);
+        temperature *= 7;
+        temperature /= 8;
     }
 
-    systemEnergy = Energy(state, neighbourLookup);
-    std::cout << "After initial rounds, system energy is " << systemEnergy << std::endl;
+    
 
     // std::uniform_int_distribution<size_t> intDistn(0, state.size() - 1);
 
@@ -157,8 +197,8 @@ bool RunAnnealing(std::vector<Vector<Dim>> & initialState, Rand & rand)
     // }
 
     
-    printf("Finished found after %lu iterations:\n", OuterEpochs);
-    PrintVects(state);
+    // printf("Finished found after %lu iterations:\n", OuterEpochs);
+    // PrintVects(state);
 
     return false;
 }

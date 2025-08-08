@@ -3,9 +3,9 @@
 #include "types.h"
 
 template <size_t Dim>
-int64_t Dot (Vector<Dim> const & a, Vector<Dim> const & b)
+PointType Dot (Vector<Dim> const & a, Vector<Dim> const & b)
 {
-    int64_t ret = 0;
+    PointType ret = 0;
     for (size_t i = 0; i < Dim; i++)
     {
         ret += a.mValues[i] * b.mValues[i];
@@ -60,7 +60,7 @@ double Dist(Vector<Dim> const & a, Vector<Dim> const & b)
 }
 
 template <size_t Dim>
-void Normalize(Vector<Dim> & point, int64_t mag)
+void Normalize(Vector<Dim> & point, PointType mag)
 {
     auto squareMag = Dot(point, point);
     auto divisor = std::sqrt(squareMag);
@@ -72,7 +72,7 @@ void Normalize(Vector<Dim> & point, int64_t mag)
 }
 
 template <size_t Dim>
-void Normalize(std::vector<Vector<Dim>> & points, int64_t mag)
+void Normalize(std::vector<Vector<Dim>> & points, PointType mag)
 {
     for (auto & point : points)
     {

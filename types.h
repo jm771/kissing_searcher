@@ -14,11 +14,11 @@ using PointType = double;
 template <size_t Dim>
 struct Vector
 {
-    std::array<int64_t, Dim> mValues;
+    std::array<PointType, Dim> mValues;
 
     void Zero()
     {
-        std::memset(mValues.data(), 0, sizeof(int64_t)* Dim);
+        std::memset(mValues.data(), 0, sizeof(PointType)* Dim);
     }
 
     void Add(Vector<Dim> const & other)
@@ -30,6 +30,9 @@ struct Vector
     }
 };
 
-static constexpr int64_t ScaledOne = 1L << 30;
+// static constexpr PointType ScaledOne = 1L << 30;
 // Can be relatively confident we won't overflow if we keep permutations relatively small before rescaling
-static constexpr int64_t ScaledOneSquared = 1L << 60;
+// static constexpr PointType ScaledOneSquared = 1L << 60;
+
+static constexpr PointType ScaledOne = 1;
+static constexpr PointType ScaledOneSquared = 1;
