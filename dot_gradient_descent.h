@@ -126,7 +126,8 @@ bool RunGradientDescent(std::vector<Vector<Dim>> & initialState)
     static constexpr size_t InnerIterationLoops = 100;
 
     RunGradientDescent(initialState, frameOutput, OuterEpochs, InnerIterationLoops, false);
-    return RunGradientDescent(initialState, frameOutput, OuterEpochs, InnerIterationLoops, true);
+    // return RunGradientDescent(initialState, frameOutput, OuterEpochs, InnerIterationLoops, true);
+    return false;
 
 
 }

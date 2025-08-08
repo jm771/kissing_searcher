@@ -87,8 +87,8 @@ int main(int, char**){
     std::mt19937 rand(12345);
 
 
-    auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
-    // auto state = Initialize4D(rand);
+    // auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
+    auto state = Initialize4D(rand);
     Normalize(state, ScaledOne);
     auto success = RunGradientDescent<DIMENSION>(state);
 
