@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include <format>
 
 template <size_t Dim>
 void PrintVect(Vector<Dim> const & vec, std::ostream & out)
@@ -79,4 +80,8 @@ struct Exception : std::exception {
     std::string mWhat; 
 };
 
-#define ASSERT(x) if (!(x)) { throw Exception("Assertion"); }
+#define ASSERT_MSG(x, msg, ...) do { \
+     if (!(x)) { throw Exception(std::format("Assertion at {}:{}\nmsg: {}", __FILE__, __LINE__, std::format(msg, ##__VA_ARGS__))); } \
+} while(false)
+
+#define ASSERT(x) ASSERT_MSG(x, "");

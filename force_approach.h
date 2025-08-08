@@ -45,7 +45,7 @@ void CalcRoundOfDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup 
                     // Scale quadratically to encourage even distn of points when over saturated
                     static constexpr PointType MinQuad = ScaledOne / 32;
 
-                    auto dval = (((diff.mValues[i] * scaleFactor) + dist - 1) / dist);
+                    auto dval = Divide((diff.mValues[i] * scaleFactor), dist);
                     if (scaleFactor > MinQuad)
                     {
                         dval *= scaleFactor;

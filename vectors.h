@@ -86,7 +86,7 @@ void Normalize(Vector<Dim> & point, PointType mag)
     for (auto & coord : point.mValues)
     {
         // Round up I guess? Todo think more
-        coord = ((coord * mag) + divisor - 1)/ divisor;
+         coord = Divide((coord * mag), divisor);
     }
 }
 

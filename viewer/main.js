@@ -62,7 +62,7 @@ function projectTo2D(P, v, w, camera) {
 // Browser Application Logic
 // ===================================
 
-let IMPORT_RADIUS = 1<<30;
+let IMPORT_RADIUS = 1;
 
 function runApp(frames) {
   const canvas = document.getElementById('canvas');

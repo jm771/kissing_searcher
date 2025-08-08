@@ -30,9 +30,30 @@ struct Vector
     }
 };
 
-// static constexpr PointType ScaledOne = 1L << 30;
-// Can be relatively confident we won't overflow if we keep permutations relatively small before rescaling
-// static constexpr PointType ScaledOneSquared = 1L << 60;
+#define FLOAT_POINTS
+//#define INT_POINTS
 
+#ifdef INT_POINTS
+static constexpr PointType ScaledOne = 1L << 30;
+// Can be relatively confident we won't overflow if we keep permutations relatively small before rescaling
+static constexpr PointType ScaledOneSquared = 1L << 60;
+
+PointType Divide(PointType a, PointType b)
+{
+    return a + b - 1 / b;
+}
+
+#elif defined(FLOAT_POINTS)
 static constexpr PointType ScaledOne = 1;
 static constexpr PointType ScaledOneSquared = 1;
+
+PointType Divide(PointType a, PointType b)
+{
+    return a / b;
+}
+
+#else
+#error must define one of FLOAT_POINTS or INT_POINTS
+#endif
+
+

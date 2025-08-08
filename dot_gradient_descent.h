@@ -7,7 +7,7 @@
 template <size_t Dim>
 void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup const & neighbours, std::vector<Vector<Dim>> & rets)
 {
-    static constexpr double DELTA = 1e-6;
+    static constexpr double DELTA = 1e-4;
     static constexpr double QUAD_DELTA = 1;
 
     std::vector<PointType> mags(points.size());
@@ -17,11 +17,19 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
         mags[i] = std::sqrt(Dot(points[i], points[i]));
 
         // Apply force to keep kissing dist - quadratic unlike the linear forces for pushing away
-        auto force = -1 * (mags[i] - ScaledOne) * std::abs(mags[i] - ScaledOne) * QUAD_DELTA;
+
+        auto magError = (mags[i] - ScaledOne);
+        auto forceScale = std::min(magError * magError, ScaledOne);
+
+        
+
+        auto force = std::signbit(magError) ? forceScale * QUAD_DELTA : -forceScale * QUAD_DELTA;
+
+        
 
         for (size_t j = 0; j < Dim; j++)
         {
-            rets[i].mValues[j] = force * points[i].mValues[j];
+            rets[i].mValues[j] = force * points[i].mValues[j] / mags[i];
         }
     }
 
@@ -37,8 +45,11 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
 
             auto cos_theta = Dot(point, neighbour) / mags[pointId] / mags[neighbourId];
 
+            ASSERT_MSG(cos_theta <= 1, "Cos theta was {}", cos_theta);
+
             if (cos_theta > 0.5) // points too close
             {
+                // Let's try this quadratic too(cos_theta - 0.5)
                 SubMult(ret, neighbour, DELTA / mags[neighbourId]);
             }      
         }
@@ -48,8 +59,9 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
 template <size_t Dim> 
 bool RunGradientDescent(std::vector<Vector<Dim>> & initialState)
 {
-    FileOutput frameOutput("viewer/frames.json");
+    FileOutput frameOutput("viewer/frames.json");    
     auto & state = initialState;
+    frameOutput.WriteRow(state);
     static constexpr size_t OuterEpochs = 100 * 1000;
     static constexpr size_t InnerIterationLoops = 1;
 
