@@ -46,6 +46,8 @@ std::vector<Vector<Dim>> Initialize(size_t nBalls, PointType radius, Rand & rand
     return ret;
 }
 
+static constexpr PointType RANDOM_PROPORTION = 2;
+
 template <typename Rand>
 std::vector<Vector<4>> Initialize4D(Rand & rand)
 {
@@ -63,7 +65,34 @@ std::vector<Vector<4>> Initialize4D(Rand & rand)
                     n.Zero();
                     n.mValues[i] = s1;
                     n.mValues[j] = s2;
-                    n.Add(RandPointOnBall<4>(ScaledOne / 2, rand));
+                    n.Add(RandPointOnBall<4>(ScaledOne / RANDOM_PROPORTION, rand));
+                }
+            }
+    
+        }
+    }
+
+    return ret;
+}
+
+template <typename Rand>
+std::vector<Vector<5>> Initialize5D(Rand & rand)
+{
+    std::vector<Vector<5>> ret;
+    std::vector<PointType> signs{-ScaledOne, ScaledOne};
+    for (int i = 0; i < 5; i++)
+    {
+        for (int j = i + 1; j < 5; j++)
+        {
+            for (auto s1 : signs)
+            {
+                for (auto s2 : signs)
+                {
+                    auto & n = ret.emplace_back();
+                    n.Zero();
+                    n.mValues[i] = s1;
+                    n.mValues[j] = s2;
+                    n.Add(RandPointOnBall<5>(ScaledOne / RANDOM_PROPORTION, rand));
                 }
             }
     
@@ -138,20 +167,3 @@ std::vector<Vector<Dim>> StratifyPointsCubic(size_t nToStratefy)
 
 //     return ret;
 // }
-
-
-
-
-std::vector<Vector<2>> Initialize2D()
-{
-    return {
-        {0, ScaledOne} ,
-        // Extra one
-        { {ScaledOne/100, ScaledOne} },
-        // Extra two - unclear if this will converge now
-        { {-ScaledOne/100, ScaledOne} },
-        {ScaledOne, 0},
-        {0, -ScaledOne},
-        { {-ScaledOne, 0} }
-    };
-}

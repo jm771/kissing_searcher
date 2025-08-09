@@ -77,26 +77,26 @@ bool Validate(std::vector<Vector<Dim>> & result)
 }
 
 int main(int, char**){
-    // auto init = Initialize2D();
+    std::mt19937 rand(12345);
+    
     // static constexpr sifze_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
     // static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
-    static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
-    // static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
-
-
-    std::mt19937 rand(12345);
+    // static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
+    static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
 
 
     // auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
     // auto state = Initialize4D(rand);
+    auto state = Initialize5D(rand);
 
     
 
-    auto state = StratifyPointsCubic<DIMENSION>(targetBalls);
-    DEBUG_LOG_VECTS(state);
+    // auto state = StratifyPointsCubic<DIMENSION>(targetBalls);
+    // DEBUG_LOG_VECTS(state);
     ASSERT(state.size() == targetBalls);
     Normalize(state, ScaledOne);
     auto success = RunGradientDescent<DIMENSION>(state);
+    (void) success;
 
     // if (success) {
     //     Validate(state);

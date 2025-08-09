@@ -4,8 +4,8 @@
 
 
 
-template <size_t Dim>
-void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup const & neighbours, std::vector<Vector<Dim>> & rets, std::vector<double> & boost, bool enableBoost)
+template <size_t Dim, bool enableBoost>
+void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup const & neighbours, std::vector<Vector<Dim>> & rets, std::vector<double> & boost)
 {
     static constexpr double DELTA = 1e-5;
     static constexpr double QUAD_DELTA = 1;
@@ -41,10 +41,10 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
 
         for (PointId neighbourId : neighbours[pointId])
         {
-            auto const & neighbour = points[neighbourId];
+            auto & neighbour = points[neighbourId];
 
             auto cos_theta = Dot(point, neighbour) / mags[pointId] / mags[neighbourId];
-            if (enableBoost)
+            if constexpr (enableBoost)
             {
                 if (cos_theta > BOOST_THRESHOLD)
                 {
@@ -60,17 +60,18 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
                 // Give it this tiny bit of ramp in to try to help stability
                 auto scale = std::min(DELTA, (cos_theta - (0.5 - (DELTA * RAMP_IN))) / RAMP_IN);
 
-                if (enableBoost)
+                if constexpr (enableBoost)
                 {
                     scale *= (1 + std::min(boost[pointId], boost[neighbourId]));
                 }
 
                 // Let's try this quadratic too (cos_theta - 0.5) *
                 SubMult(ret, neighbour,  scale / mags[neighbourId]);
+                SubMult(rets[neighbourId], point,  scale / mags[pointId]);
             }      
         }
 
-        if (enableBoost)
+        if constexpr (enableBoost)
         {
             if (hasCloseNeighbour) {
                 boost[pointId] += BOOST_RAMP;
@@ -81,8 +82,8 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
     }
 }
 
-template <size_t Dim> 
-bool RunGradientDescent(std::vector<Vector<Dim>> & initialState, FileOutput & frameOutput, size_t OuterEpochs, size_t InnerIterationLoops, bool enableBoost)
+template <size_t Dim, bool enableBoost> 
+bool RunGradientDescent(std::vector<Vector<Dim>> & initialState, FileOutput & frameOutput, size_t OuterEpochs, size_t InnerIterationLoops)
 {
     
     auto & state = initialState;
@@ -99,12 +100,12 @@ bool RunGradientDescent(std::vector<Vector<Dim>> & initialState, FileOutput & fr
 
     for (size_t outerEpoch = 0; outerEpoch < OuterEpochs; outerEpoch++)
     {
-        auto neighbourLookup = ConstructPointNeighboursBidi(state, ScaledBound(1.2));
+        auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
         frameOutput.WriteRow(state);
 
         for (size_t innerEpoch = 0; innerEpoch < InnerIterationLoops; innerEpoch++)
         {
-            CalcDotDiffs(state, neighbourLookup, diffVect, boost, enableBoost);        
+            CalcDotDiffs<Dim, enableBoost>(state, neighbourLookup, diffVect, boost);        
     	    
             for (size_t i = 0; i < state.size(); i++)
             {
@@ -122,10 +123,10 @@ template <size_t Dim>
 bool RunGradientDescent(std::vector<Vector<Dim>> & initialState)
 {
     FileOutput frameOutput("viewer/frames.json");
-    static constexpr size_t OuterEpochs = 50 * 1000;
+    static constexpr size_t OuterEpochs = 20 * 1000;
     static constexpr size_t InnerIterationLoops = 100;
 
-    RunGradientDescent(initialState, frameOutput, OuterEpochs, InnerIterationLoops, false);
+    RunGradientDescent<Dim, false>(initialState, frameOutput, OuterEpochs, InnerIterationLoops);
     // return RunGradientDescent(initialState, frameOutput, OuterEpochs, InnerIterationLoops, true);
     return false;
 
