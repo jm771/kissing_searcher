@@ -88,12 +88,18 @@ int main(int, char**){
 
 
     // auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
-    auto state = Initialize4D(rand);
+    // auto state = Initialize4D(rand);
+
+    
+
+    auto state = StratifyPointsCubic<DIMENSION>(targetBalls);
+    DEBUG_LOG_VECTS(state);
+    ASSERT(state.size() == targetBalls);
     Normalize(state, ScaledOne);
     auto success = RunGradientDescent<DIMENSION>(state);
 
-    if (success) {
-        Validate(state);
-    }
+    // if (success) {
+    //     Validate(state);
+    // }
     return 0;
 }

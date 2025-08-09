@@ -3,6 +3,7 @@
 #include "types.h"
 #include "vectors.h"
 #include <random>
+#include <numbers>
 
 // template <size_t Dim> 
 // Vector<Dim> UniformOnBall(std::random)
@@ -71,6 +72,73 @@ std::vector<Vector<4>> Initialize4D(Rand & rand)
 
     return ret;
 }
+
+double GetCoord(size_t i, size_t stratInLayer)
+{
+    return ((i * ScaledOne * 2) / (stratInLayer - 1)) - ScaledOne;
+}
+
+template <size_t Dim>
+std::vector<Vector<Dim>> StratifyPointsCubic(size_t nToStratefy)
+{
+    const size_t stratInLayer = std::ceil(std::pow(nToStratefy, 1.0/Dim));
+    std::vector<Vector<Dim>> ret{};
+    if constexpr (Dim == 1) {
+        for (size_t i = 0; i < stratInLayer; i++)
+        {
+            ret.emplace_back(Vector<1>{GetCoord(i, stratInLayer)});
+        }
+    }
+    else {
+        for (size_t i = 0; i < stratInLayer; i++)
+        {
+            auto inner = StratifyPointsCubic<Dim - 1>((nToStratefy + i) / stratInLayer);
+            for (auto const & el : inner) {
+                auto & newEl = ret.emplace_back();
+                std::memcpy(newEl.mValues.data(), el.mValues.data(), sizeof(PointType) * (Dim - 1));
+                newEl.mValues[Dim - 1] = GetCoord(i, stratInLayer);
+            }
+        }
+    }
+
+    return ret;
+}
+
+// template <size_t Dim, typename Rand>
+// std::vector<Vector<Dim>> InitializeStratified(size_t nBalls)
+// {
+//     if constexpr (Dim == 2) {
+//         std::vector<Vector<2>> ret();
+//         for (size_t i = 0; i < nBalls; i++)
+//         {
+//             auto rads = std::pi_v * 2 * i / nBalls;
+//             ret.emplace_back({std::sin(rads) * ScaledOne / 2, d::cos(rads) * ScaledOne / 2});
+//         }
+//         return ret;
+//     }
+//     else
+//     {
+//         std::vector<Vector<Dim>> ret();
+
+//     for (size_t i = 0; i < nBalls; i++)
+//     {
+//         auto sign = ((i % 2) * 2 - 1;
+//         auto axis = (i / 2) % Dim;
+//         auto
+        
+//     }
+
+//     }
+// }
+
+// template <size_t Dim, typename Rand>
+// std::vector<Vector<Dim>> InitializeStratefied(size_t nBalls, Rand & rand)
+// {
+    
+
+//     return ret;
+// }
+
 
 
 

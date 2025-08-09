@@ -43,7 +43,7 @@ void PrintLookups(NeighboursLookup const & lookup)
 }
 
 
-// #define DEBUG_LOGGING
+#define DEBUG_LOGGING
 
 #ifdef DEBUG_LOGGING
 #define DEBUG_LOG(format, ...) \
