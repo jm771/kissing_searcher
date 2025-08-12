@@ -2,6 +2,13 @@
 #include "force_approach.h"
 #include "simulated_annealing.h"
 #include "dot_gradient_descent.h"
+
+#include <atomic>
+#include <mutex>
+#include <thread>
+#include <chrono>
+#include <deque>
+
 // static constexpr PointType GoogleScaledOne = 1e13;
 
 
@@ -76,27 +83,141 @@ bool Validate(std::vector<Vector<Dim>> & result)
     return valid;
 }
 
+template<typename StoredT>
+class ThreadSafeQueue
+{
+    public:
+    ThreadSafeQueue(size_t nProducers) : mNRunningProducers(nProducers)
+    {
+    }
+
+    void Push(StoredT && item)
+    {
+        std::scoped_lock lock{mMutex};
+        mQueue.push_back(std::move(item));
+    }
+
+    std::optional<StoredT> PopWait()
+    {
+        while (true)
+        {
+            if (!mNRunningProducers)
+            {
+                return std::nullopt;
+            }
+
+            {
+                std::scoped_lock lock {mMutex};
+                if (mQueue.size())
+                {
+                    auto ret = mQueue.front();
+                    mQueue.pop_front();
+                    return ret;
+                }
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+    }
+
+    bool Finished()
+    {
+        return ! mNRunningProducers;
+    }
+
+    void MarkFinishedProducer()
+    {
+        mNRunningProducers--;
+    }
+
+
+private:
+    std::atomic<size_t> mNRunningProducers;
+    std::mutex mMutex{};
+    std::deque<StoredT> mQueue;
+};
+
+struct WorkResult
+{
+    size_t mSeed;
+    double mScore;
+};
+
+// static constexpr size_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
+// static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
+// static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
+static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
+
+void workerThread(std::atomic<size_t> & inputQueue, ThreadSafeQueue<WorkResult> & resultQueue, size_t finishNumber)
+{
+    while(true)
+    {
+        size_t seed = inputQueue++;
+        if (seed > finishNumber)
+        {
+            resultQueue.MarkFinishedProducer();
+            return;
+        }
+
+        std::mt19937 rand(seed);
+        auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
+        ASSERT(state.size() == targetBalls);
+        Normalize(state, ScaledOne);
+        auto score = RunGradientDescent<DIMENSION>(state);
+
+
+        resultQueue.Push(WorkResult{seed, score});
+    }
+
+}
+
+
+
 int main(int, char**){
-    std::mt19937 rand(12345);
-    
-    // static constexpr sifze_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
-    // static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
-    // static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
-    static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
+     
+    static constexpr size_t STARTING_SEED = 12345;
+    static constexpr size_t STOPPING_SEED = 1234567;
 
+    std::atomic<size_t> nextSeed{STARTING_SEED};
 
-    // auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
     // auto state = Initialize4D(rand);
+    std::mt19937 rand(STARTING_SEED);
     auto state = Initialize5D(rand);
+
+    static constexpr size_t nThreads = 15;
+
+    ThreadSafeQueue<WorkResult> results{nThreads};
+
+    std::vector<std::thread> threads;
+
+    for (size_t i = 0; i < nThreads; i++)
+    {
+        threads.emplace_back([&nextSeed, &results]{ return workerThread(nextSeed, results, STOPPING_SEED);});
+    }
+
+    while (true)
+    {
+        auto entry = results.PopWait();
+        if (!entry.has_value())
+        {
+            break;
+        }
+
+        std::cout << entry->mSeed << "," << entry->mScore << std::endl;
+    }
+
+    for (auto & thread : threads)
+    {
+        thread.join();
+    }
+
 
     
 
     // auto state = StratifyPointsCubic<DIMENSION>(targetBalls);
     // DEBUG_LOG_VECTS(state);
-    ASSERT(state.size() == targetBalls);
-    Normalize(state, ScaledOne);
-    auto success = RunGradientDescent<DIMENSION>(state);
-    (void) success;
+
 
     // if (success) {
     //     Validate(state);

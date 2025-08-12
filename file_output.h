@@ -52,3 +52,14 @@ class FileOutput
     bool mFirst;
     bool mClosed;
 };
+
+class NoOutput
+{
+    template <size_t Dim>
+    void WriteRow(std::vector<Vector<Dim>> const & row) {
+    }
+
+    void Close()
+    {        
+    }
+};

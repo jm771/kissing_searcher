@@ -35,7 +35,6 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
     for (PointId pointId = 0; pointId < points.size(); pointId++)
     {
         auto const & point = points[pointId];
-        auto & ret = rets[pointId];
 
         bool hasCloseNeighbour = false;
 
@@ -66,7 +65,7 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
                 }
 
                 // Let's try this quadratic too (cos_theta - 0.5) *
-                SubMult(ret, neighbour,  scale / mags[neighbourId]);
+                SubMult(rets[pointId], neighbour,  scale / mags[neighbourId]);
                 SubMult(rets[neighbourId], point,  scale / mags[pointId]);
             }      
         }
@@ -82,8 +81,8 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
     }
 }
 
-template <size_t Dim, bool enableBoost> 
-bool RunGradientDescent(std::vector<Vector<Dim>> & initialState, FileOutput & frameOutput, size_t OuterEpochs, size_t InnerIterationLoops)
+template <bool enableBoost, size_t Dim, typename OutputT> 
+double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & frameOutput, size_t OuterEpochs, size_t InnerIterationLoops)
 {
     
     auto & state = initialState;
@@ -97,6 +96,7 @@ bool RunGradientDescent(std::vector<Vector<Dim>> & initialState, FileOutput & fr
     {
         vec.Zero();
     }
+    
 
     for (size_t outerEpoch = 0; outerEpoch < OuterEpochs; outerEpoch++)
     {
@@ -114,21 +114,32 @@ bool RunGradientDescent(std::vector<Vector<Dim>> & initialState, FileOutput & fr
         }
     }
 
-    PrintVects(state);
+    Normalize(state, ScaledOne);
 
-    return false;
+    auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
+    double score = 0;
+    for (PointId pointId = 0; pointId < state.size(); pointId++)
+    {
+        for (PointId neighbourId : neighbourLookup[pointId])
+        {
+            auto dotVal = Dot(state[pointId], state[neighbourId]) / ScaledOneSquared;
+            if (dotVal > 0.5)
+            {
+                score += (dotVal - 0.5);
+            }
+        }
+    }
+
+    return score;
 }
 
 template <size_t Dim> 
-bool RunGradientDescent(std::vector<Vector<Dim>> & initialState)
+double RunGradientDescent(std::vector<Vector<Dim>> & initialState)
 {
     FileOutput frameOutput("viewer/frames.json");
     static constexpr size_t OuterEpochs = 20 * 1000;
     static constexpr size_t InnerIterationLoops = 100;
 
-    RunGradientDescent<Dim, false>(initialState, frameOutput, OuterEpochs, InnerIterationLoops);
+    return RunGradientDescent<false>(initialState, frameOutput, OuterEpochs, InnerIterationLoops);
     // return RunGradientDescent(initialState, frameOutput, OuterEpochs, InnerIterationLoops, true);
-    return false;
-
-
 }
