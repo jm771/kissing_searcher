@@ -194,9 +194,9 @@ function runApp(frames) {
     const basis_w = applyMatrix(rotation, [0, 1, ...Array(n - 2).fill(0)]);
     const camera = applyMatrix(rotation, [0, 0, -2, ...Array(n - 3).fill(0)]);
 
-    let projected = sphereCenters.map(p => {
+    let projected = sphereCenters.map((p, pidx) => {
       let main = projectTo2D(p, basis_v, basis_w, camera);
-      let overlap = sphereCenters.map(x => {let d = sub(x, p); let m = dot(d, d); return m == 0 ? 10 : m;} ).reduce((x, y) => Math.min(x, y));
+      let overlap = sphereCenters.map((x, xidx) => {let d = sub(x, p); let m = dot(d, d); return pidx == xidx ? 10 : m;} ).reduce((x, y) => Math.min(x, y));
       main.push(overlap);
       return main;
     });

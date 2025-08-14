@@ -228,7 +228,7 @@ int main(int nargs, char** argv){
             break;
         }
 
-        std::cout << entry->mSeed << "," << entry->mScore << std::endl;
+        std::cout << "(" << entry->mSeed << "," << entry->mScore << ")," << std::endl;
     }
 
     for (auto & thread : threads)

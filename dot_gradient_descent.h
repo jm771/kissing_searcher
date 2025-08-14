@@ -2,17 +2,51 @@
 #pragma once
 
 
-
-
-template <size_t Dim, bool enableBoost>
-void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup const & neighbours, std::vector<Vector<Dim>> & rets, std::vector<double> & boost)
+class BoostState
 {
-    static constexpr double DELTA = 1e-5;
-    static constexpr double QUAD_DELTA = 1;
     static constexpr double BOOST_THRESHOLD = 0.53;
     static constexpr double EMERGENCY = 0.85;
     static constexpr double BOOST_RAMP = 0.005;
     static constexpr double BOOST_DECAY = 0.90;
+
+
+    public:
+    void RegisterCosTheta(double cos_theta)
+    {
+        if (cos_theta > BOOST_THRESHOLD)
+        {
+            hasCloseNeighbour = true;
+        }
+    }
+
+    void EndLoop()
+    {
+        if (hasCloseNeighbour) {
+            boostValue += BOOST_RAMP;
+        } else {
+            boostValue *= BOOST_DECAY;
+        }
+
+        hasCloseNeighbour = false;
+    }
+
+    double GetBoostValue()
+    {
+        return boostValue;
+    }
+
+    private:
+    bool hasCloseNeighbour{};
+    double boostValue;
+};
+
+
+
+template <size_t Dim>
+void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup const & neighbours, std::vector<Vector<Dim>> & rets, std::vector<BoostState> & boost)
+{
+    static constexpr double DELTA = 1e-5;
+    static constexpr double QUAD_DELTA = 1;
 
     std::vector<PointType> mags(points.size());
 
@@ -37,27 +71,14 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
     {
         auto const & point = points[pointId];
 
-        bool hasCloseNeighbour = false;
-        bool hasEmergencyNeighbour = false;
-
         for (PointId neighbourId : neighbours[pointId])
         {
             auto & neighbour = points[neighbourId];
 
             auto cos_theta = Dot(point, neighbour) / mags[pointId] / mags[neighbourId];
 
-            if (cos_theta > EMERGENCY)
-            {
-                hasEmergencyNeighbour = true;
-            }
-            
-            if constexpr (enableBoost)
-            {
-                if (cos_theta > BOOST_THRESHOLD)
-                {
-                    hasCloseNeighbour = true;
-                }
-            }
+            boost[pointId].RegisterCosTheta(cos_theta);
+            boost[neighbourId].RegisterCosTheta(cos_theta);
 
             ASSERT_MSG(cos_theta <= 1.0000000001, "Cos theta was {}", cos_theta);
 
@@ -67,30 +88,14 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
                 // Give it this tiny bit of ramp in to try to help stability
                 auto scale = std::min(DELTA, (cos_theta - (0.5 - (DELTA * RAMP_IN))) / RAMP_IN);
 
-                // if constexpr (enableBoost)
-                // {
-                    scale *= (1 + std::min(boost[pointId], boost[neighbourId]));
-                // }
+                scale *= (1 + std::min(boost[pointId].GetBoostValue(), boost[neighbourId].GetBoostValue()));
 
-                // Let's try this quadratic too (cos_theta - 0.5) *
                 SubMult(rets[pointId], neighbour,  scale / mags[neighbourId]);
                 SubMult(rets[neighbourId], point,  scale / mags[pointId]);
             }      
         }
 
-        if (hasEmergencyNeighbour)
-        {
-            boost[pointId] += 0.1;
-        }
-
-        if constexpr (enableBoost)
-        {
-            if (hasCloseNeighbour) {
-                boost[pointId] += BOOST_RAMP;
-            } else {
-                boost[pointId] *= BOOST_DECAY;
-            }
-        }
+        boost[pointId].EndLoop();
     }
 }
 
@@ -101,7 +106,7 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
     frameOutput.WriteRow(state);
 
     std::vector<Vector<Dim>> diffVect(state.size());
-    std::vector<double> boost(state.size());
+    std::vector<BoostState> boost(state.size());
     for (auto & vec : diffVect)
     {
         vec.Zero();
@@ -119,7 +124,7 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
 
         for (size_t innerEpoch = 0; innerEpoch < InnerIterationLoops; innerEpoch++)
         {
-            CalcDotDiffs<Dim, false>(state, neighbourLookup, diffVect, boost);        
+            CalcDotDiffs<Dim>(state, neighbourLookup, diffVect, boost);        
     	    
             for (size_t i = 0; i < state.size(); i++)
             {
@@ -137,7 +142,7 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
 
             for (size_t innerEpoch = 0; innerEpoch < InnerIterationLoops; innerEpoch++)
             {
-                CalcDotDiffs<Dim, true>(state, neighbourLookup, diffVect, boost);        
+                CalcDotDiffs<Dim>(state, neighbourLookup, diffVect, boost);        
                 
                 for (size_t i = 0; i < state.size(); i++)
                 {
