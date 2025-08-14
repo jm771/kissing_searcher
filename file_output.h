@@ -55,8 +55,10 @@ class FileOutput
 
 class NoOutput
 {
+    public:
     template <size_t Dim>
     void WriteRow(std::vector<Vector<Dim>> const & row) {
+    (void) row;
     }
 
     void Close()

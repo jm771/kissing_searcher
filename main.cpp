@@ -101,11 +101,6 @@ class ThreadSafeQueue
     {
         while (true)
         {
-            if (!mNRunningProducers)
-            {
-                return std::nullopt;
-            }
-
             {
                 std::scoped_lock lock {mMutex};
                 if (mQueue.size())
@@ -114,6 +109,11 @@ class ThreadSafeQueue
                     mQueue.pop_front();
                     return ret;
                 }
+            }
+
+            if (!mNRunningProducers)
+            {
+                return std::nullopt;
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -149,7 +149,8 @@ struct WorkResult
 // static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
 static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
 
-void workerThread(std::atomic<size_t> & inputQueue, ThreadSafeQueue<WorkResult> & resultQueue, size_t finishNumber)
+template <typename OutputT>
+void workerThread(std::atomic<size_t> & inputQueue, ThreadSafeQueue<WorkResult> & resultQueue, OutputT & output, size_t finishNumber)
 {
     while(true)
     {
@@ -164,36 +165,59 @@ void workerThread(std::atomic<size_t> & inputQueue, ThreadSafeQueue<WorkResult> 
         auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
         ASSERT(state.size() == targetBalls);
         Normalize(state, ScaledOne);
-        auto score = RunGradientDescent<DIMENSION>(state);
+        auto score = RunGradientDescent<DIMENSION>(state, output);
 
 
         resultQueue.Push(WorkResult{seed, score});
     }
-
 }
 
 
 
-int main(int, char**){
+int main(int nargs, char** argv){
+    ASSERT_MSG(nargs >= 2, "Missing arg - choose one of batch or analyse");
+    std::string mode(argv[1]);
      
-    static constexpr size_t STARTING_SEED = 12345;
-    static constexpr size_t STOPPING_SEED = 1234567;
+    size_t STARTING_SEED = 0;
+    size_t STOPPING_SEED = 0;
+    size_t nThreads = 0;
+
+    FileOutput fileOutput{"viewer/frames.json"};
+    NoOutput noOutput;
+
+    if (mode == "batch")
+    {
+        STARTING_SEED = 12345;
+        STOPPING_SEED = 1234567;
+        nThreads = 7;
+    }
+    else if (mode == "analyse")
+    {
+        ASSERT_MSG(nargs >= 3, "use {} analyse <seed_number>", argv[0]);
+        auto seed = std::stoll(argv[2]);
+        STARTING_SEED = seed;
+        STOPPING_SEED = seed;
+        nThreads = 1;
+    }
+    else
+    {
+        ASSERT_MSG(false, "unkown mode");
+    }
 
     std::atomic<size_t> nextSeed{STARTING_SEED};
-
-    // auto state = Initialize4D(rand);
-    std::mt19937 rand(STARTING_SEED);
-    auto state = Initialize5D(rand);
-
-    static constexpr size_t nThreads = 15;
-
     ThreadSafeQueue<WorkResult> results{nThreads};
-
     std::vector<std::thread> threads;
 
     for (size_t i = 0; i < nThreads; i++)
     {
-        threads.emplace_back([&nextSeed, &results]{ return workerThread(nextSeed, results, STOPPING_SEED);});
+        if (mode == "batch")
+        {
+            threads.emplace_back([&nextSeed, &results, STOPPING_SEED, &noOutput]{ return workerThread(nextSeed, results, noOutput, STOPPING_SEED);});
+        }
+        else
+        {
+            threads.emplace_back([&nextSeed, &results, STOPPING_SEED, &fileOutput]{ return workerThread(nextSeed, results, fileOutput, STOPPING_SEED);});
+        }
     }
 
     while (true)
