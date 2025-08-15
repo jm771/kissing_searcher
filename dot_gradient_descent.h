@@ -45,8 +45,9 @@ void ApplyDiff(Vector<Dim> const & point, Vector<Dim> const & neighbour, double 
 {
     // Lets just assume mags are close enough to 1...
     auto neighbourCopy = neighbour;
-    SubMult(neighbourCopy, point, cos_theta);
-    Normalize(neighbourCopy, ScaledOne);
+    // This submult lets 123
+    // SubMult(neighbourCopy, point, cos_theta);
+    // Normalize(neighbourCopy, ScaledOne);
     SubMult(ret, neighbour, scale);
 }
 
