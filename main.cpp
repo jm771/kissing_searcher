@@ -163,9 +163,9 @@ void workerThread(std::atomic<size_t> & inputQueue, ThreadSafeQueue<WorkResult> 
         }
 
         std::mt19937 rand(seed);
-        // auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
+        auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
 
-        auto state = Initialize4D(rand);
+        // auto state = Initialize4D(rand);
         ASSERT(state.size() == targetBalls);
         Normalize(state, ScaledOne);
 

@@ -40,6 +40,16 @@ class BoostState
     double boostValue;
 };
 
+template <size_t Dim>
+void ApplyDiff(Vector<Dim> const & point, Vector<Dim> const & neighbour, double cos_theta, double scale, Vector<Dim> & ret)
+{
+    // Lets just assume mags are close enough to 1...
+    auto neighbourCopy = neighbour;
+    SubMult(neighbourCopy, point, cos_theta);
+    Normalize(neighbourCopy, ScaledOne);
+    SubMult(ret, neighbour, scale);
+}
+
 
 
 template <size_t Dim>
@@ -88,10 +98,15 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
                 // Give it this tiny bit of ramp in to try to help stability
                 auto scale = std::min(DELTA, (cos_theta - (0.5 - (DELTA * RAMP_IN))) / RAMP_IN);
 
-                scale *= (1 + std::min(boost[pointId].GetBoostValue(), boost[neighbourId].GetBoostValue()));
+                // scale *= (1 + std::min(boost[pointId].GetBoostValue(), boost[neighbourId].GetBoostValue()));
 
-                SubMult(rets[pointId], neighbour,  scale / mags[neighbourId]);
-                SubMult(rets[neighbourId], point,  scale / mags[pointId]);
+                // auto sf = (cos_theta / 2) + 1;
+                // scale *= sf * sf;
+                auto sf = 1 / (1-cos_theta);
+                scale *= sf;
+
+                ApplyDiff(point, neighbour, cos_theta, scale, rets[pointId]);
+                ApplyDiff(neighbour, point, cos_theta, scale, rets[neighbourId]);      
             }      
         }
 
