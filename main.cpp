@@ -196,6 +196,10 @@ int main(int nargs, char** argv){
     {
         STARTING_SEED = 12345;
         STOPPING_SEED = 1234567;
+        // I'm gunna assume everything is hyperthreaded these days and that we don't want hyperthreads
+        nThreads = std::thread::hardware_concurrency() /2 -1;
+        ASSERT_MSG(nThreads > 0, "Could not determine thread count - pls hardcode");
+        std::cerr << "Running on " << nThreads << " threads" << std::endl;
         nThreads = 7;
     }
     else if (mode == "analyse")

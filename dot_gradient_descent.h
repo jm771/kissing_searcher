@@ -46,12 +46,12 @@ void ApplyDiff(Vector<Dim> const & point, Vector<Dim> const & neighbour, double 
     // Lets just assume mags are close enough to 1...
     auto neighbourCopy = neighbour;
     // This submult lets 123
-    // SubMult(neighbourCopy, point, cos_theta);
-    // Normalize(neighbourCopy, ScaledOne);
-    SubMult(ret, neighbour, scale);
+    // Orthoganlize the vector before scaling
+    // This does seem to help avoid degeneracy. Unclear if it helps much in non degenerate cases.
+    SubMult(neighbourCopy, point, cos_theta);
+    Normalize(neighbourCopy, ScaledOne);
+    SubMult(ret, neighbourCopy, scale);
 }
-
-
 
 template <size_t Dim>
 void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup const & neighbours, std::vector<Vector<Dim>> & rets, std::vector<BoostState> & boost)
@@ -94,16 +94,32 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
             ASSERT_MSG(cos_theta <= 1.0000000001, "Cos theta was {}", cos_theta);
 
             static constexpr PointType RAMP_IN = 5;
-            if (cos_theta > 0.5 - (DELTA * RAMP_IN)) // points too close
+            // if (cos_theta > 0.5 - (DELTA * RAMP_IN)) // points too close
             {
                 // Give it this tiny bit of ramp in to try to help stability
-                auto scale = std::min(DELTA, (cos_theta - (0.5 - (DELTA * RAMP_IN))) / RAMP_IN);
+                auto THRESH = 0.5 - (DELTA * RAMP_IN);
+                auto scale = std::min(DELTA, (cos_theta - THRESH) / RAMP_IN);
+                // auto scale = DELTA;
+
+
+                auto heaviside = (cos_theta > THRESH);
+                // auto heaviside = (cos_theta > THRESH) - (cos_theta <= THRESH && cos_theta > 0.45);
+                // auto heaviside = 1 / (1 + std::exp(-10000 *(cos_theta - THRESH)));
+                
+
+                scale *= heaviside;
 
                 // scale *= (1 + std::min(boost[pointId].GetBoostValue(), boost[neighbourId].GetBoostValue()));
 
                 // auto sf = (cos_theta / 2) + 1;
                 // scale *= sf * sf;
-                auto sf = 1 / (1-cos_theta);
+
+                // What if we start chasing these numbers downwards after a while? "Cooling" as it were
+                // Would be nice to have a convergence checker
+
+                // Does a good job of preventing degenercy up to like 1.5, 1.6
+                // Seed 12359 converges to an optimum until about 1.2. 
+                auto sf = 1 / std::max(0.01, (1.7-cos_theta));
                 scale *= sf;
 
                 ApplyDiff(point, neighbour, cos_theta, scale, rets[pointId]);
