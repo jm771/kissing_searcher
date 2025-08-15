@@ -181,10 +181,8 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
 template <size_t Dim, typename OutputT> 
 double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & frameOutput)
 {
-    // FileOutput frameOutput("viewer/frames.json");
     static constexpr size_t OuterEpochs = 20 * 1000;
     static constexpr size_t InnerIterationLoops = 100;
 
     return RunGradientDescent<false>(initialState, frameOutput, OuterEpochs, InnerIterationLoops);
-    // return RunGradientDescent(initialState, frameOutput, OuterEpochs, InnerIterationLoops, true);
 }

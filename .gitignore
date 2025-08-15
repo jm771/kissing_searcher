@@ -2,6 +2,7 @@ kissing_searcher
 .cmake/
 .gitignore
 .vscode/
+.ipynb_checkpoints
 CMakeCache.txt
 CMakeFiles/
 Makefile
