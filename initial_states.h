@@ -46,7 +46,7 @@ std::vector<Vector<Dim>> Initialize(size_t nBalls, PointType radius, Rand & rand
     return ret;
 }
 
-static constexpr PointType RANDOM_PROPORTION = 2;
+static constexpr PointType RANDOM_PROPORTION = 1.5;
 
 template <typename Rand>
 std::vector<Vector<4>> Initialize4D(Rand & rand)

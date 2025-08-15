@@ -141,13 +141,14 @@ private:
 struct WorkResult
 {
     size_t mSeed;
+    double mStartScore;
     double mScore;
 };
 
 // static constexpr size_t DIMENSION = 2; static constexpr size_t targetBalls = 6;
 // static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
-// static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
-static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
+static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
+// static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
 
 template <typename OutputT>
 void workerThread(std::atomic<size_t> & inputQueue, ThreadSafeQueue<WorkResult> & resultQueue, OutputT & output, size_t finishNumber)
@@ -162,13 +163,19 @@ void workerThread(std::atomic<size_t> & inputQueue, ThreadSafeQueue<WorkResult> 
         }
 
         std::mt19937 rand(seed);
-        auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
+        // auto state = Initialize<DIMENSION>(targetBalls, ScaledOne, rand);
+
+        auto state = Initialize4D(rand);
         ASSERT(state.size() == targetBalls);
         Normalize(state, ScaledOne);
+
+        auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
+        auto startScore = CalcScore(state, neighbourLookup);
+
         auto score = RunGradientDescent<DIMENSION>(state, output);
 
 
-        resultQueue.Push(WorkResult{seed, score});
+        resultQueue.Push(WorkResult{seed, startScore, score});
     }
 }
 
@@ -228,7 +235,7 @@ int main(int nargs, char** argv){
             break;
         }
 
-        std::cout << "(" << entry->mSeed << "," << entry->mScore << ")," << std::endl;
+        std::cout << "(" << entry->mSeed  << "," << entry->mStartScore << "," << entry->mScore << ")," << std::endl;
     }
 
     for (auto & thread : threads)

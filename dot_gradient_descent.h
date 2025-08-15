@@ -99,6 +99,25 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
     }
 }
 
+template <size_t Dim>
+double CalcScore(std::vector<Vector<Dim>> const & state, NeighboursLookup & neighbourLookup)
+{
+    double score = 0;
+    for (PointId pointId = 0; pointId < state.size(); pointId++)
+    {
+        for (PointId neighbourId : neighbourLookup[pointId])
+        {
+            auto dotVal = Dot(state[pointId], state[neighbourId]) / ScaledOneSquared;
+            if (dotVal > 0.500000001)
+            {
+                score += (dotVal - 0.5);
+            }
+        }
+    }
+
+    return score;
+}
+
 template <bool enableBoost, size_t Dim, typename OutputT> 
 double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & frameOutput, size_t OuterEpochs, size_t InnerIterationLoops)
 {
@@ -155,20 +174,8 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
     Normalize(state, ScaledOne);
 
     auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
-    double score = 0;
-    for (PointId pointId = 0; pointId < state.size(); pointId++)
-    {
-        for (PointId neighbourId : neighbourLookup[pointId])
-        {
-            auto dotVal = Dot(state[pointId], state[neighbourId]) / ScaledOneSquared;
-            if (dotVal > 0.500000001)
-            {
-                score += (dotVal - 0.5);
-            }
-        }
-    }
+    return CalcScore(state, neighbourLookup);
 
-    return score;
 }
 
 template <size_t Dim, typename OutputT> 
@@ -178,6 +185,6 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
     static constexpr size_t OuterEpochs = 20 * 1000;
     static constexpr size_t InnerIterationLoops = 100;
 
-    return RunGradientDescent<true>(initialState, frameOutput, OuterEpochs, InnerIterationLoops);
+    return RunGradientDescent<false>(initialState, frameOutput, OuterEpochs, InnerIterationLoops);
     // return RunGradientDescent(initialState, frameOutput, OuterEpochs, InnerIterationLoops, true);
 }
