@@ -170,7 +170,7 @@ void workerThread(std::atomic<size_t> & inputQueue, ThreadSafeQueue<WorkResult> 
         ASSERT(state.size() == targetBalls);
         Normalize(state, ScaledOne);
 
-        auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
+        auto neighbourLookup = ConstructPointNeighbours(state);
         auto startScore = CalcScore(state, neighbourLookup);
 
         auto score = RunGradientDescent<DIMENSION>(state, output);

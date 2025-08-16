@@ -17,8 +17,10 @@ bool CloserThanSafe(Vector<Dim> const & a, Vector<Dim> const & b, double bound)
 
 
 template <size_t Dim>
-NeighboursLookup ConstructPointNeighbours(std::vector<Vector<Dim>> const & points, double margin)
+NeighboursLookup ConstructPointNeighbours(std::vector<Vector<Dim>> const & points)
 {
+    static constexpr PointType margin = 1.2;
+
     std::vector<std::vector<PointId>> ret;
     for (PointId pointId = 0; pointId < points.size(); pointId++)
     {

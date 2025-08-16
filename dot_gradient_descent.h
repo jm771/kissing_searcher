@@ -17,8 +17,8 @@ void ApplyDiff(Vector<Dim> const & point, Vector<Dim> const & neighbour, double 
     SubMult(ret, neighbourCopy, scale);
 }
 
-template <size_t Dim>
-void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup const & neighbours, std::vector<Vector<Dim>> & rets)
+template <size_t Dim, typename LossFunc>
+void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup const & neighbours, std::vector<Vector<Dim>> & rets, LossFunc lossFunc)
 {
     static constexpr double DELTA = 1e-5;
     static constexpr double QUAD_DELTA = 1;
@@ -52,7 +52,7 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
 
             // Maybe we ramp this up over time instead?
 
-            // if (cos_theta > 0.5 - (DELTA * RAMP_IN)) // points too close
+            if (cos_theta > 0.5 - (DELTA * RAMP_IN)) // points too close
             {
                 // Give it this tiny bit of ramp in to try to help stability
                 auto THRESH = 0.5 - (DELTA * RAMP_IN);
@@ -60,12 +60,12 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
                 // auto scale = DELTA;
 
 
-                auto heaviside = (cos_theta > THRESH);
+                // auto heaviside = (cos_theta > THRESH);
                 // auto heaviside = (cos_theta > THRESH) - (cos_theta <= THRESH && cos_theta > 0.45);
                 // auto heaviside = 1 / (1 + std::exp(-10000 *(cos_theta - THRESH)));
                 
 
-                scale *= heaviside;
+                // scale *= heaviside;
 
                 // scale *= (1 + std::min(boost[pointId].GetBoostValue(), boost[neighbourId].GetBoostValue()));
 
@@ -75,12 +75,12 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
                 // Does a good job of preventing degenercy up to like 1.5, 1.6
                 // Seed 12359 converges to an optimum until about 1.2. 
                 // auto sf = exp(50 * (cos_theta - 0.5));
+                // double sf = 1;
+                double sf = lossFunc(cos_theta);
                 // ;
-                auto sf = 1 / std::max(0.01, (1-cos_theta));
+                // auto sf = 1 / std::max(0.01, (1-cos_theta));
 
                 maxForce = std::max(sf, maxForce);
-
-                // sf *= maxForce;
 
 
                 scale *= sf;
@@ -128,12 +128,23 @@ double CalcScore(std::vector<Vector<Dim>> const & state, NeighboursLookup & neig
     return score;
 }
 
-template <size_t Dim, typename OutputT> 
-double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & frameOutput, size_t OuterEpochs, size_t InnerIterationLoops)
+template <size_t Dim>
+bool HasConverged(std::vector<Vector<Dim>> const & diffs)
 {
-    auto & state = initialState;
-    frameOutput.WriteRow(state);
+    for (auto const & vector : diffs)
+    {
+        if (Dot(vector, vector) > 1e-18)
+        {
+            return false;
+        }
+    }
 
+    return true;
+}
+
+template <size_t Dim, typename OutputT, typename LossFunc>
+void RunLoops(std::vector<Vector<Dim>> & state, OutputT & frameOutput, size_t OuterEpochs, size_t InnerIterationLoops, LossFunc lossFunc)
+{
     std::vector<Vector<Dim>> diffVect(state.size());
     // std::vector<BoostState> boost(state.size());
     for (auto & vec : diffVect)
@@ -144,23 +155,43 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
     for (size_t outerEpoch = 0; outerEpoch < OuterEpochs; outerEpoch++)
     {
         // std::cout << outerEpoch << std::endl;
-        auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(3));
+        auto neighbourLookup = ConstructPointNeighbours(state);
         frameOutput.WriteRow(state);
 
         for (size_t innerEpoch = 0; innerEpoch < InnerIterationLoops; innerEpoch++)
         {
-            CalcDotDiffs<Dim>(state, neighbourLookup, diffVect);        
+            CalcDotDiffs<Dim>(state, neighbourLookup, diffVect, lossFunc);        
     	    
             for (size_t i = 0; i < state.size(); i++)
             {
                 Acc(state[i], diffVect[i]);
             }
         }
+
+        if (outerEpoch % 100 == 0)
+        {
+            if (HasConverged(diffVect))
+            {
+                // std::cerr<< outerEpoch << std::endl;
+                return;
+            }
+        }
     }
+}
+
+template <size_t Dim, typename OutputT> 
+double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & frameOutput, size_t OuterEpochs, size_t InnerIterationLoops)
+{
+    auto & state = initialState;
+    frameOutput.WriteRow(state);
+
+
+    // RunLoops(state, frameOutput, OuterEpochs, InnerIterationLoops, [](double cos_theta){ return exp(5 * (cos_theta - 0.5));});
+    RunLoops(state, frameOutput, OuterEpochs, InnerIterationLoops, [](double cos_theta){ return 1 / std::max(0.01, (1-cos_theta));});
 
     Normalize(state, ScaledOne);
 
-    auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(3));
+    auto neighbourLookup = ConstructPointNeighbours(state);
     return CalcScore(state, neighbourLookup);
 
 }

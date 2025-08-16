@@ -101,6 +101,6 @@ void Normalize(std::vector<Vector<Dim>> & points, PointType mag)
 
 static consteval double ScaledBound(double val)
 {
-    ASSERT(val < 2);
+    // ASSERT(val < 2);
     return ScaledOneSquared * val * val;
 }
