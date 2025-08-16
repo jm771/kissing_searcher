@@ -9,7 +9,7 @@ void ApplyDiff(Vector<Dim> const & point, Vector<Dim> const & neighbour, double 
 
     // Lets just assume mags are close enough to 1...
     auto neighbourCopy = neighbour;
-    // This submult lets 123
+
     // Orthoganlize the vector before scaling
     // This does seem to help avoid degeneracy. Unclear if it helps much in non degenerate cases.
     SubMult(neighbourCopy, point, cos_theta);
@@ -25,26 +25,17 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
 
     std::vector<PointType> mags(points.size());
 
+    double maxForce = 0;
+
     for (size_t i = 0; i < points.size(); i++)
     {
         mags[i] = std::sqrt(Dot(points[i], points[i]));
-
-        // Apply force to keep kissing dist - quadratic unlike the linear forces for pushing away
-
-        auto magError = (mags[i] - ScaledOne);
-        auto forceScale = std::min(magError * magError, ScaledOne);
-        auto force = std::signbit(magError) ? forceScale * QUAD_DELTA : -forceScale * QUAD_DELTA;
-
-        for (size_t j = 0; j < Dim; j++)
-        {
-            rets[i].mValues[j] = force * points[i].mValues[j] / mags[i];
-        }
+        rets[i].Zero();
     }
-
-
     for (PointId pointId = 0; pointId < points.size(); pointId++)
     {
         auto const & point = points[pointId];
+
 
         for (PointId neighbourId : neighbours[pointId])
         {
@@ -78,14 +69,13 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
 
                 // scale *= (1 + std::min(boost[pointId].GetBoostValue(), boost[neighbourId].GetBoostValue()));
 
-                // auto sf = (cos_theta / 2) + 1;
-                // scale *= sf * sf;
-
                 // What if we start chasing these numbers downwards after a while? "Cooling" as it were
                 // Would be nice to have a convergence checker
 
                 // Does a good job of preventing degenercy up to like 1.5, 1.6
                 // Seed 12359 converges to an optimum until about 1.2. 
+                // auto sf = exp(50 * (cos_theta - 0.5));
+                // maxForce = std::max(sf, maxForce);
                 auto sf = 1 / std::max(0.01, (1-cos_theta));
                 scale *= sf;
 
@@ -93,6 +83,21 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
                 ApplyDiff(neighbour, point, cos_theta, scale, rets[neighbourId]);      
             }      
         }
+
+    for (size_t i = 0; i < points.size(); i++)
+    {
+        // Apply force to keep kissing dist - quadratic unlike the linear forces for pushing away
+
+        auto magError = (mags[i] - ScaledOne);
+        auto forceScale = std::min(magError * magError, ScaledOne);
+        auto force = std::signbit(magError) ? forceScale * QUAD_DELTA : -forceScale * QUAD_DELTA;
+
+        for (size_t j = 0; j < Dim; j++)
+        {
+            // rets[i].mValues[j] /= maxForce;
+            rets[i].mValues[j] += force * points[i].mValues[j] / mags[i];
+        }
+    }
 
         // boost[pointId].EndLoop();
     }
