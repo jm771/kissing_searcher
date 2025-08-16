@@ -25,7 +25,7 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
 
     std::vector<PointType> mags(points.size());
 
-    double maxForce = 0;
+    double maxForce = 0.1;
 
     for (size_t i = 0; i < points.size(); i++)
     {
@@ -75,14 +75,23 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
                 // Does a good job of preventing degenercy up to like 1.5, 1.6
                 // Seed 12359 converges to an optimum until about 1.2. 
                 // auto sf = exp(50 * (cos_theta - 0.5));
-                // maxForce = std::max(sf, maxForce);
+                // ;
                 auto sf = 1 / std::max(0.01, (1-cos_theta));
+
+                maxForce = std::max(sf, maxForce);
+
+                // sf *= maxForce;
+
+
                 scale *= sf;
 
                 ApplyDiff(point, neighbour, cos_theta, scale, rets[pointId]);
                 ApplyDiff(neighbour, point, cos_theta, scale, rets[neighbourId]);      
             }      
         }
+        
+        // boost[pointId].EndLoop();
+    }
 
     for (size_t i = 0; i < points.size(); i++)
     {
@@ -94,12 +103,9 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
 
         for (size_t j = 0; j < Dim; j++)
         {
-            // rets[i].mValues[j] /= maxForce;
+            rets[i].mValues[j] /= maxForce;
             rets[i].mValues[j] += force * points[i].mValues[j] / mags[i];
         }
-    }
-
-        // boost[pointId].EndLoop();
     }
 }
 
