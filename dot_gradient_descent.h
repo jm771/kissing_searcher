@@ -43,6 +43,8 @@ class BoostState
 template <size_t Dim>
 void ApplyDiff(Vector<Dim> const & point, Vector<Dim> const & neighbour, double cos_theta, double scale, Vector<Dim> & ret)
 {
+    // SubMult(ret, neighbour, scale);
+
     // Lets just assume mags are close enough to 1...
     auto neighbourCopy = neighbour;
     // This submult lets 123
@@ -94,6 +96,9 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
             ASSERT_MSG(cos_theta <= 1.0000000001, "Cos theta was {}", cos_theta);
 
             static constexpr PointType RAMP_IN = 5;
+
+            // Maybe we ramp this up over time instead?
+
             // if (cos_theta > 0.5 - (DELTA * RAMP_IN)) // points too close
             {
                 // Give it this tiny bit of ramp in to try to help stability
@@ -119,7 +124,7 @@ void CalcDotDiffs(std::vector<Vector<Dim>> const & points, NeighboursLookup cons
 
                 // Does a good job of preventing degenercy up to like 1.5, 1.6
                 // Seed 12359 converges to an optimum until about 1.2. 
-                auto sf = 1 / std::max(0.01, (1.7-cos_theta));
+                auto sf = 1 / std::max(0.01, (1-cos_theta));
                 scale *= sf;
 
                 ApplyDiff(point, neighbour, cos_theta, scale, rets[pointId]);
@@ -170,6 +175,7 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
 
     for (size_t outerEpoch = 0; outerEpoch < OuterEpochs; outerEpoch++)
     {
+        // std::cout << outerEpoch << std::endl;
         auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
         frameOutput.WriteRow(state);
 
@@ -184,24 +190,24 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
         }
     }
 
-    if constexpr (enableBoost)
-    {
-        for (size_t outerEpoch = 0; outerEpoch < OuterEpochs; outerEpoch++)
-        {
-            auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
-            frameOutput.WriteRow(state);
+    // if constexpr (enableBoost)
+    // {
+    //     for (size_t outerEpoch = 0; outerEpoch < OuterEpochs; outerEpoch++)
+    //     {
+    //         auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
+    //         frameOutput.WriteRow(state);
 
-            for (size_t innerEpoch = 0; innerEpoch < InnerIterationLoops; innerEpoch++)
-            {
-                CalcDotDiffs<Dim>(state, neighbourLookup, diffVect, boost);        
+    //         for (size_t innerEpoch = 0; innerEpoch < InnerIterationLoops; innerEpoch++)
+    //         {
+    //             CalcDotDiffs<Dim>(state, neighbourLookup, diffVect, boost);        
                 
-                for (size_t i = 0; i < state.size(); i++)
-                {
-                    Acc(state[i], diffVect[i]);
-                }
-            }
-        }
-    }
+    //             for (size_t i = 0; i < state.size(); i++)
+    //             {
+    //                 Acc(state[i], diffVect[i]);
+    //             }
+    //         }
+    //     }
+    // }
 
     Normalize(state, ScaledOne);
 

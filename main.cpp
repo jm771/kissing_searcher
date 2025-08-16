@@ -149,6 +149,7 @@ struct WorkResult
 // static constexpr size_t DIMENSION = 3; static constexpr size_t targetBalls = 12;
 static constexpr size_t DIMENSION = 4; static constexpr size_t targetBalls = 24;
 // static constexpr size_t DIMENSION = 5; static constexpr size_t targetBalls = 40;
+// static constexpr size_t DIMENSION = 11; static constexpr size_t targetBalls = 593;
 
 template <typename OutputT>
 void workerThread(std::atomic<size_t> & inputQueue, ThreadSafeQueue<WorkResult> & resultQueue, OutputT & output, size_t finishNumber)
