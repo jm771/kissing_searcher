@@ -144,7 +144,7 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
     for (size_t outerEpoch = 0; outerEpoch < OuterEpochs; outerEpoch++)
     {
         // std::cout << outerEpoch << std::endl;
-        auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
+        auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(3));
         frameOutput.WriteRow(state);
 
         for (size_t innerEpoch = 0; innerEpoch < InnerIterationLoops; innerEpoch++)
@@ -160,7 +160,7 @@ double RunGradientDescent(std::vector<Vector<Dim>> & initialState, OutputT & fra
 
     Normalize(state, ScaledOne);
 
-    auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(1.2));
+    auto neighbourLookup = ConstructPointNeighbours(state, ScaledBound(3));
     return CalcScore(state, neighbourLookup);
 
 }
