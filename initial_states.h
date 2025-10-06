@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "vectors.h"
+#include "rotation_matrix.h"
 #include <random>
 #include <numbers>
 
@@ -26,7 +27,7 @@ Vector<Dim> RandPoint(PointType stddev, Rand & rand)
 }
 
 template <size_t Dim, typename Rand>
-Vector<Dim> RandPointOnBall(PointType radius, Rand & rand)
+Vector<Dim> RandPointOnSphere(PointType radius, Rand & rand)
 {
     auto ret = RandPoint<Dim>(radius / 16, rand);
 
@@ -35,18 +36,74 @@ Vector<Dim> RandPointOnBall(PointType radius, Rand & rand)
 }
 
 template <size_t Dim, typename Rand>
+RotationMatrix<Dim> RandomOrientation(Rand & rand)
+{
+    std::vector<Vector<Dim>> vects; 
+
+    for (size_t i = 0; i < Dim; i++)
+    {
+        auto newPoint = RandPoint<Dim>(ScaledOne, rand);
+        for (auto & vec : vects)
+        {
+            Residualize(newPoint, vec);
+        }
+
+        Normalize(newPoint, ScaledOne);
+        vects.push_back(newPoint);
+    }
+
+    RotationMatrix<Dim> ret;
+    for (size_t i = 0; i < Dim; i++)
+    {
+        std::memcpy(&ret.ValueAt(0, i), vects[i].mValues.data(), sizeof(PointType) * Dim);
+    }
+    
+    return ret;
+}
+
+
+template <size_t Dim, typename Rand>
+std::vector<Vector<Dim>> InitializeWithSymmetry(size_t nCopies, std::vector<Vector<Dim>> pattern, Rand & rand)
+{
+    std::vector<Vector<Dim>> ret;
+
+    for (size_t i = 0; i < nCopies; i++)
+    {
+        auto orientation = RandomOrientation<Dim>(rand);
+        for (auto vec : pattern)
+        {
+            ret.push_back(orientation.Multiply(vec));
+        }
+    }
+
+    return ret;
+}
+
+
+template <size_t Dim, typename Rand>
 std::vector<Vector<Dim>> Initialize(size_t nBalls, PointType radius, Rand & rand)
 {
     std::vector<Vector<Dim>> ret;
     for (size_t i = 0; i < nBalls; i++)
     {
-        ret.push_back(RandPointOnBall<Dim>(radius, rand));
+        ret.push_back(RandPointOnSphere<Dim>(radius, rand));
     }
     
     return ret;
 }
 
 static constexpr PointType RANDOM_PROPORTION = 1.5;
+
+template <size_t Dim, typename Rand>
+void AddNoise(Rand & rand, std::vector<Vector<Dim>> & state, PointType scale)
+{
+    for (auto & vec : state)
+    {
+        vec.Add(RandPoint<Dim>(scale, rand));
+    }
+
+    Normalize(state, ScaledOne);
+}
 
 template <typename Rand>
 std::vector<Vector<4>> Initialize4D(Rand & rand)
@@ -65,7 +122,7 @@ std::vector<Vector<4>> Initialize4D(Rand & rand)
                     n.Zero();
                     n.mValues[i] = s1;
                     n.mValues[j] = s2;
-                    n.Add(RandPointOnBall<4>(ScaledOne / RANDOM_PROPORTION, rand));
+                    n.Add(RandPointOnSphere<4>(ScaledOne / RANDOM_PROPORTION, rand));
                 }
             }
     
@@ -92,7 +149,7 @@ std::vector<Vector<5>> Initialize5D(Rand & rand)
                     n.Zero();
                     n.mValues[i] = s1;
                     n.mValues[j] = s2;
-                    n.Add(RandPointOnBall<5>(ScaledOne / RANDOM_PROPORTION, rand));
+                    n.Add(RandPointOnSphere<5>(ScaledOne / RANDOM_PROPORTION, rand));
                 }
             }
     

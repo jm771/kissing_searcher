@@ -89,7 +89,7 @@ void ApplyUnstick(std::vector<Vector<Dim>> & diffVectors, Rand & rand)
     for (auto & vect : diffVectors)
     {
         PointType size = std::sqrt(Dot(vect, vect));
-        vect = RandPointOnBall<Dim>(10*size, rand);
+        vect = RandPointOnSphere<Dim>(10*size, rand);
     }
 }
 

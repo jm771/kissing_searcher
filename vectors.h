@@ -91,6 +91,13 @@ void Normalize(Vector<Dim> & point, PointType mag)
 }
 
 template <size_t Dim>
+void Residualize(Vector<Dim> & vector, Vector<Dim> const & byUnitVector)
+{
+    auto dotVal = Dot(vector, byUnitVector);
+    SubMult(vector, byUnitVector, dotVal);
+}
+
+template <size_t Dim>
 void Normalize(std::vector<Vector<Dim>> & points, PointType mag)
 {
     for (auto & point : points)
